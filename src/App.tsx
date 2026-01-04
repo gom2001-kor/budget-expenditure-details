@@ -250,6 +250,7 @@ function App() {
                 <ReceiptUploader
                     isAnalyzing={isAnalyzing}
                     onFileSelected={handleReceiptUpload}
+                    onCancelAnalysis={() => setIsAnalyzing(false)}
                     disabled={!supabaseInitialized}
                 />
 

@@ -1,15 +1,17 @@
 import { useRef, useState } from 'react';
-import { Camera, Image, Loader2, CheckCircle } from 'lucide-react';
+import { Camera, Image, Loader2, CheckCircle, X } from 'lucide-react';
 
 interface ReceiptUploaderProps {
     isAnalyzing: boolean;
     onFileSelected: (file: File) => void;
+    onCancelAnalysis?: () => void;
     disabled?: boolean;
 }
 
 export function ReceiptUploader({
     isAnalyzing,
     onFileSelected,
+    onCancelAnalysis,
     disabled = false,
 }: ReceiptUploaderProps) {
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -39,6 +41,17 @@ export function ReceiptUploader({
             setShowSuccess(false);
             setPreviewUrl(null);
         }, 2000);
+    };
+
+    const handleRemoveImage = () => {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl(null);
+        setShowSuccess(false);
+        if (onCancelAnalysis) {
+            onCancelAnalysis();
+        }
     };
 
     // Expose handleSuccess for parent to call
@@ -156,6 +169,23 @@ export function ReceiptUploader({
                             </>
                         )}
                     </div>
+
+                    {/* Delete Button */}
+                    {!showSuccess && (
+                        <button
+                            onClick={handleRemoveImage}
+                            className="
+                                flex-shrink-0 w-10 h-10 
+                                flex items-center justify-center
+                                rounded-full bg-error/10 
+                                text-error hover:bg-error/20
+                                active:scale-95 transition-all
+                            "
+                            aria-label="이미지 삭제"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    )}
                 </div>
             )}
         </div>
