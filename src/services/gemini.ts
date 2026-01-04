@@ -1,8 +1,19 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AnalyzedReceipt } from '../types';
 
-// 기본 API 키 (하드코딩)
+// 기본 API 키 (폴백용)
 export const DEFAULT_GEMINI_API_KEY = 'AIzaSyC1Fl9saLKOeFk2zS3zSTiGttmcXvmhgFc';
+
+// localStorage 키 (Settings.tsx와 동일)
+const GEMINI_API_KEY_STORAGE_KEY = 'gemini-api-key';
+
+/**
+ * localStorage에서 저장된 API 키를 가져오거나 기본값 반환
+ */
+function getApiKey(): string {
+    const savedKey = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
+    return savedKey || DEFAULT_GEMINI_API_KEY;
+}
 
 /**
  * 영수증 이미지 분석
@@ -11,7 +22,8 @@ export async function analyzeReceipt(
     imageFile: File,
     apiKey?: string
 ): Promise<AnalyzedReceipt> {
-    const key = apiKey || DEFAULT_GEMINI_API_KEY;
+    // 우선순위: 전달된 apiKey > localStorage > 기본값
+    const key = apiKey || getApiKey();
     const ai = new GoogleGenerativeAI(key);
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
 

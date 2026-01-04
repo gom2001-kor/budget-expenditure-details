@@ -1,17 +1,50 @@
-import { useState } from 'react';
-import { ArrowLeft, Trash2, AlertTriangle, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check } from 'lucide-react';
 
 interface SettingsProps {
     onBack: () => void;
     onResetData: () => void;
 }
 
+const GEMINI_API_KEY_STORAGE_KEY = 'gemini-api-key';
+
 export function Settings({ onBack, onResetData }: SettingsProps) {
     const [showConfirm, setShowConfirm] = useState(false);
+    const [apiKey, setApiKey] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
+
+    // Load saved API key on mount
+    useEffect(() => {
+        const savedKey = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
+        if (savedKey) {
+            setApiKey(savedKey);
+        }
+    }, []);
+
+    const handleSaveApiKey = () => {
+        if (apiKey.trim()) {
+            localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, apiKey.trim());
+            setIsSaved(true);
+            setTimeout(() => setIsSaved(false), 2000);
+        }
+    };
+
+    const handleClearApiKey = () => {
+        localStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+        setApiKey('');
+    };
 
     const handleReset = () => {
         onResetData();
         setShowConfirm(false);
+    };
+
+    // Mask API key for display
+    const getMaskedKey = () => {
+        if (!apiKey) return '';
+        if (apiKey.length <= 8) return '••••••••';
+        return apiKey.slice(0, 4) + '••••••••' + apiKey.slice(-4);
     };
 
     return (
@@ -31,6 +64,105 @@ export function Settings({ onBack, onResetData }: SettingsProps) {
             </header>
 
             <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+                {/* API Key Section */}
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
+                        <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                            API 설정
+                        </h2>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Key className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-body font-semibold text-text-primary mb-1">Gemini API 키</p>
+                                <p className="text-caption text-text-secondary mb-3">
+                                    영수증 분석을 위해 Google AI Studio에서 발급받은 API 키를 입력하세요.
+                                </p>
+
+                                <div className="relative">
+                                    <input
+                                        type={showApiKey ? 'text' : 'password'}
+                                        value={showApiKey ? apiKey : (apiKey ? getMaskedKey() : '')}
+                                        onChange={(e) => {
+                                            if (showApiKey) {
+                                                setApiKey(e.target.value);
+                                            }
+                                        }}
+                                        onFocus={() => setShowApiKey(true)}
+                                        placeholder="API 키를 입력하세요"
+                                        className="
+                                            w-full h-12 px-4 pr-12
+                                            border-2 border-border rounded-xl
+                                            text-body text-text-primary
+                                            placeholder:text-text-secondary/50
+                                            focus:border-primary focus:outline-none
+                                            transition-colors
+                                        "
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary transition-colors"
+                                        aria-label={showApiKey ? 'API 키 숨기기' : 'API 키 보기'}
+                                    >
+                                        {showApiKey ? (
+                                            <EyeOff className="w-5 h-5" />
+                                        ) : (
+                                            <Eye className="w-5 h-5" />
+                                        )}
+                                    </button>
+                                </div>
+
+                                <div className="flex gap-2 mt-3">
+                                    <button
+                                        onClick={handleSaveApiKey}
+                                        disabled={!apiKey.trim()}
+                                        className={`
+                                            flex-1 h-10 rounded-xl font-semibold text-sm
+                                            flex items-center justify-center gap-2
+                                            transition-all active:scale-95
+                                            ${isSaved
+                                                ? 'bg-success text-white'
+                                                : 'bg-primary text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                                            }
+                                        `}
+                                    >
+                                        {isSaved ? (
+                                            <>
+                                                <Check className="w-4 h-4" />
+                                                저장됨
+                                            </>
+                                        ) : (
+                                            '저장'
+                                        )}
+                                    </button>
+                                    {apiKey && (
+                                        <button
+                                            onClick={handleClearApiKey}
+                                            className="h-10 px-4 rounded-xl font-semibold text-sm border-2 border-gray-200 text-text-secondary hover:bg-gray-50 transition-all active:scale-95"
+                                        >
+                                            삭제
+                                        </button>
+                                    )}
+                                </div>
+
+                                <a
+                                    href="https://aistudio.google.com/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-block mt-3 text-caption text-primary hover:underline"
+                                >
+                                    Google AI Studio에서 API 키 발급받기 →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Data Management Section */}
                 <div className="bg-white rounded-2xl shadow-card overflow-hidden">
                     <div className="px-4 py-3 border-b border-border">
@@ -131,3 +263,6 @@ export function Settings({ onBack, onResetData }: SettingsProps) {
         </div>
     );
 }
+
+// Export the storage key for use in other files
+export { GEMINI_API_KEY_STORAGE_KEY };
