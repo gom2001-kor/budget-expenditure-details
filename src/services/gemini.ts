@@ -13,7 +13,7 @@ export async function analyzeReceipt(
 ): Promise<AnalyzedReceipt> {
     const key = apiKey || DEFAULT_GEMINI_API_KEY;
     const ai = new GoogleGenerativeAI(key);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
 
     // 이미지를 Base64로 변환
     const imageData = await fileToBase64(imageFile);
@@ -75,8 +75,34 @@ export async function analyzeReceipt(
                 ? parsed.amount
                 : parseInt(String(parsed.amount).replace(/[^\d]/g, ''), 10) || 0,
         };
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Receipt analysis error:', error);
+
+        // 에러 타입에 따른 상세 메시지
+        if (error instanceof Error) {
+            const errorMessage = error.message.toLowerCase();
+
+            if (errorMessage.includes('api key') || errorMessage.includes('api_key')) {
+                throw new Error('API 키가 유효하지 않습니다. 설정에서 Gemini API 키를 확인해주세요.');
+            }
+            if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+                throw new Error('API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+            }
+            if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+                throw new Error('Gemini 모델을 찾을 수 없습니다. 잠시 후 다시 시도해주세요.');
+            }
+            if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                throw new Error('네트워크 연결을 확인해주세요.');
+            }
+
+            // JSON 파싱 에러
+            if (error.name === 'SyntaxError') {
+                throw new Error('영수증 분석 결과를 처리할 수 없습니다. 다른 이미지를 시도해주세요.');
+            }
+
+            throw new Error(`영수증 분석 실패: ${error.message}`);
+        }
+
         throw new Error('영수증 분석에 실패했습니다. 다시 시도해주세요.');
     }
 }
