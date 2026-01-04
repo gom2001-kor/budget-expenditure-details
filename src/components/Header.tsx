@@ -104,9 +104,9 @@ export function Header({
                     </div>
 
                     {/* Remaining */}
-                    <div className={`bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-sm border-l-4 ${remaining < 0 ? 'border-error' : spentPercentage >= 80 ? 'border-warning' : 'border-success'}`}>
+                    <div className={`bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-sm border-l-4 min-w-0 overflow-hidden ${remaining < 0 ? 'border-error' : spentPercentage >= 80 ? 'border-warning' : 'border-success'}`}>
                         <p className="text-sm font-semibold text-text-primary mb-1">잔액</p>
-                        <p className={`text-lg sm:text-2xl font-bold tabular-nums truncate ${getRemainingColor()}`}>
+                        <p className={`text-base sm:text-xl font-bold tabular-nums whitespace-nowrap overflow-hidden text-ellipsis ${getRemainingColor()}`}>
                             {formatCurrency(remaining)}
                         </p>
                     </div>
