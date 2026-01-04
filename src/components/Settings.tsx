@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check } from 'lucide-react';
+import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2 } from 'lucide-react';
+import { testConnectionDetailed } from '../services/supabase';
 
 interface SettingsProps {
     onBack: () => void;
@@ -13,6 +14,10 @@ export function Settings({ onBack, onResetData }: SettingsProps) {
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+
+    // DB 테스트 관련 state
+    const [dbTestLoading, setDbTestLoading] = useState(false);
+    const [dbTestResult, setDbTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     // Load saved API key on mount
     useEffect(() => {
@@ -38,6 +43,24 @@ export function Settings({ onBack, onResetData }: SettingsProps) {
     const handleReset = () => {
         onResetData();
         setShowConfirm(false);
+    };
+
+    // DB 연결 테스트
+    const handleDbTest = async () => {
+        setDbTestLoading(true);
+        setDbTestResult(null);
+
+        try {
+            const result = await testConnectionDetailed();
+            setDbTestResult(result);
+            console.log('DB Test Result:', result);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
+            setDbTestResult({ success: false, message: errorMessage });
+            console.error('DB Test Error:', err);
+        } finally {
+            setDbTestLoading(false);
+        }
     };
 
     // Mask API key for display
@@ -158,6 +181,71 @@ export function Settings({ onBack, onResetData }: SettingsProps) {
                                 >
                                     Google AI Studio에서 API 키 발급받기 →
                                 </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* DB Connection Test Section */}
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
+                        <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                            데이터베이스 연결
+                        </h2>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Database className="w-5 h-5 text-success" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-body font-semibold text-text-primary mb-1">Supabase 연결 테스트</p>
+                                <p className="text-caption text-text-secondary mb-3">
+                                    PC와 모바일 간 데이터 동기화가 안 되면 DB 연결 상태를 확인하세요.
+                                </p>
+
+                                <button
+                                    onClick={handleDbTest}
+                                    disabled={dbTestLoading}
+                                    className="
+                                        w-full h-12 rounded-xl font-semibold text-sm
+                                        flex items-center justify-center gap-2
+                                        bg-success text-white hover:bg-green-600
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                        transition-all active:scale-95
+                                    "
+                                >
+                                    {dbTestLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            테스트 중...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Database className="w-4 h-4" />
+                                            DB 연결 테스트
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Test Result */}
+                                {dbTestResult && (
+                                    <div className={`
+                                        mt-3 p-3 rounded-xl text-sm
+                                        ${dbTestResult.success
+                                            ? 'bg-success/10 text-success border border-success/20'
+                                            : 'bg-error/10 text-error border border-error/20'
+                                        }
+                                    `}>
+                                        <p className="font-semibold mb-1">
+                                            {dbTestResult.success ? '✅ 연결 성공' : '❌ 연결 실패'}
+                                        </p>
+                                        <p className="text-xs opacity-80 break-words">
+                                            {dbTestResult.message}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

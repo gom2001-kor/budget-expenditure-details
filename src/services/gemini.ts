@@ -1,18 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AnalyzedReceipt } from '../types';
 
-// 기본 API 키 (폴백용)
-export const DEFAULT_GEMINI_API_KEY = 'AIzaSyC1Fl9saLKOeFk2zS3zSTiGttmcXvmhgFc';
-
 // localStorage 키 (Settings.tsx와 동일)
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini-api-key';
 
 /**
- * localStorage에서 저장된 API 키를 가져오거나 기본값 반환
+ * localStorage에서 저장된 API 키를 가져옴
  */
-function getApiKey(): string {
-    const savedKey = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
-    return savedKey || DEFAULT_GEMINI_API_KEY;
+function getApiKey(): string | null {
+    return localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
 }
 
 /**
@@ -22,8 +18,13 @@ export async function analyzeReceipt(
     imageFile: File,
     apiKey?: string
 ): Promise<AnalyzedReceipt> {
-    // 우선순위: 전달된 apiKey > localStorage > 기본값
+    // 우선순위: 전달된 apiKey > localStorage
     const key = apiKey || getApiKey();
+
+    if (!key) {
+        throw new Error('Gemini API 키가 설정되지 않았습니다. 설정 > API 설정에서 API 키를 입력해주세요.');
+    }
+
     const ai = new GoogleGenerativeAI(key);
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
 

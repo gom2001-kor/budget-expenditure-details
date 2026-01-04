@@ -71,7 +71,8 @@ export async function addExpense(
 
     if (error) {
         console.error('Add expense error:', error);
-        throw new Error('지출 추가에 실패했습니다.');
+        // 상세 에러 메시지 전달
+        throw new Error(`저장 실패: ${error.message} (코드: ${error.code})`);
     }
 
     return data;

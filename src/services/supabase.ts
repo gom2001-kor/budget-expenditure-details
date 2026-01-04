@@ -18,7 +18,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 }
 
 /**
- * Supabase 연결 테스트
+ * Supabase 연결 테스트 (간단)
  */
 export async function testConnection(url: string, key: string): Promise<boolean> {
     try {
@@ -35,6 +35,48 @@ export async function testConnection(url: string, key: string): Promise<boolean>
     } catch (err) {
         console.error('Supabase connection failed:', err);
         return false;
+    }
+}
+
+/**
+ * Supabase 연결 상세 테스트 - 에러 메시지 반환
+ */
+export async function testConnectionDetailed(): Promise<{ success: boolean; message: string; data?: unknown }> {
+    const supabase = supabaseClient;
+
+    if (!supabase) {
+        return {
+            success: false,
+            message: 'Supabase 클라이언트가 초기화되지 않았습니다.'
+        };
+    }
+
+    try {
+        const { data, error, count } = await supabase
+            .from('expenses')
+            .select('*', { count: 'exact' })
+            .limit(1);
+
+        if (error) {
+            return {
+                success: false,
+                message: `DB 오류: ${error.message} (코드: ${error.code})`,
+                data: error
+            };
+        }
+
+        return {
+            success: true,
+            message: `연결 성공! 총 ${count ?? 0}개의 데이터가 있습니다.`,
+            data: data
+        };
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
+        return {
+            success: false,
+            message: `연결 실패: ${errorMessage}`,
+            data: err
+        };
     }
 }
 

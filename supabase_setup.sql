@@ -21,13 +21,27 @@ CREATE TABLE IF NOT EXISTS expenses (
 -- 2. Row Level Security 활성화
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
--- 3. 모든 사용자가 읽기/쓰기 가능하도록 정책 생성 (개발용)
+-- 3. 기존 정책 삭제 (충돌 방지)
+DROP POLICY IF EXISTS "Allow all operations" ON expenses;
+DROP POLICY IF EXISTS "Allow public select" ON expenses;
+DROP POLICY IF EXISTS "Allow public insert" ON expenses;
+DROP POLICY IF EXISTS "Allow public update" ON expenses;
+DROP POLICY IF EXISTS "Allow public delete" ON expenses;
+
+-- 4. 모든 사용자가 읽기/쓰기 가능하도록 정책 생성 (개발용)
+-- 방법 1: 단일 정책으로 모든 작업 허용
 CREATE POLICY "Allow all operations" ON expenses
     FOR ALL
     USING (true)
     WITH CHECK (true);
 
--- 4. updated_at 자동 업데이트 트리거
+-- 방법 2: (위 정책이 안 되면 아래 개별 정책 사용)
+-- CREATE POLICY "Allow public select" ON expenses FOR SELECT USING (true);
+-- CREATE POLICY "Allow public insert" ON expenses FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow public update" ON expenses FOR UPDATE USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public delete" ON expenses FOR DELETE USING (true);
+
+-- 5. updated_at 자동 업데이트 트리거
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -36,10 +50,19 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_expenses_updated_at ON expenses;
 CREATE TRIGGER update_expenses_updated_at
     BEFORE UPDATE ON expenses
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- RLS 정책 문제 해결용 SQL (데이터가 저장되지 않을 때 실행)
+-- ============================================
+-- 아래 SQL을 별도로 실행하면 RLS를 완전히 비활성화합니다.
+-- 주의: 보안상 개발/테스트 용도로만 사용하세요.
+
+-- ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- Storage 버킷 설정 (Dashboard에서 수동으로 설정 필요)
@@ -72,3 +95,4 @@ CREATE TRIGGER update_expenses_updated_at
 -- CREATE POLICY "Allow public deletes" ON storage.objects
 --     FOR DELETE
 --     USING (bucket_id = 'receipts');
+
