@@ -13,7 +13,7 @@ export async function analyzeReceipt(
 ): Promise<AnalyzedReceipt> {
     const key = apiKey || DEFAULT_GEMINI_API_KEY;
     const ai = new GoogleGenerativeAI(key);
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // 이미지를 Base64로 변환
     const imageData = await fileToBase64(imageFile);
