@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Styles */
+:root {
+  --primary: #2563EB;
+  --secondary: #1E3A8A;
+  --background: #F8FAFC;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --border: #E2E8F0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Number formatting */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Button press effect */
+.btn-press {
+  transition: transform 0.1s ease;
+}
+
+.btn-press:active {
+  transform: scale(0.95);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+/* Date picker customization */
+.react-datepicker {
+  font-family: inherit !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25) !important;
+}
+
+.react-datepicker__header {
+  background-color: white !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-radius: 16px 16px 0 0 !important;
+  padding-top: 12px !important;
+}
+
+.react-datepicker__current-month {
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  color: #0f172a !important;
+}
+
+.react-datepicker__day-name {
+  color: #64748b !important;
+  font-weight: 500 !important;
+  width: 40px !important;
+  line-height: 40px !important;
+}
+
+.react-datepicker__day {
+  width: 40px !important;
+  line-height: 40px !important;
+  border-radius: 50% !important;
+  margin: 2px !important;
+  transition: background-color 0.2s, color 0.2s !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: #eff6ff !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--range-start,
+.react-datepicker__day--range-end {
+  background-color: #2563eb !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.react-datepicker__day--in-range {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+.react-datepicker__day--keyboard-selected {
+  background-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+.react-datepicker__day--today {
+  border: 2px dashed #2563eb !important;
+  background-color: transparent !important;
+}
+
+.react-datepicker__day--today.react-datepicker__day--selected {
+  background-color: #2563eb !important;
+  border: none !important;
+}
+
+.react-datepicker__navigation {
+  top: 12px !important;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: #64748b !important;
+}
+
+.react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  border-color: #2563eb !important;
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Focus visible styles */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Input styles */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+textarea {
+  font-family: inherit;
+  font-size: 15px;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Mobile touch highlight removal */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Gradient background for header */
+.gradient-header {
+  background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Safe area padding for mobile */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
