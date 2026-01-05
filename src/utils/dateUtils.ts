@@ -105,7 +105,19 @@ export function formatTime(timeString: string | null): string {
 
 /**
  * Date 객체를 ISO 형식 날짜 문자열로 변환 (YYYY-MM-DD)
+ * 로컬 타임존 기준으로 변환 (UTC 변환 없음)
  */
 export function toISODateString(date: Date): string {
     return format(date, 'yyyy-MM-dd');
 }
+
+/**
+ * YYYY-MM-DD 문자열을 로컬 Date 객체로 변환
+ * 타임존 문제 해결: UTC로 해석하지 않고 로컬 날짜로 파싱
+ */
+export function parseLocalDate(dateString: string): Date {
+    // 'YYYY-MM-DD' 형식을 로컬 시간 자정으로 파싱
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0); // 정오로 설정하여 DST 문제 방지
+}
+

@@ -22,7 +22,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useToast } from './hooks/useToast';
 
 // Utils
-import { isDateInRange, formatDateRangeKorean } from './utils/dateUtils';
+import { isDateInRange, formatDateRangeKorean, toISODateString, parseLocalDate } from './utils/dateUtils';
 import { exportToPdf } from './utils/pdfExport';
 
 // Types
@@ -80,11 +80,13 @@ function App() {
 
             try {
                 const settings = await getUserSettings();
+                console.log('Loaded settings from Supabase:', settings);
                 if (settings) {
                     setBudget(settings.budget || 0);
                     setDateRange({
-                        startDate: settings.start_date ? new Date(settings.start_date) : null,
-                        endDate: settings.end_date ? new Date(settings.end_date) : null,
+                        // 타임존 보정된 파싱 사용
+                        startDate: settings.start_date ? parseLocalDate(settings.start_date) : null,
+                        endDate: settings.end_date ? parseLocalDate(settings.end_date) : null,
                     });
                 }
             } catch (err) {
@@ -118,16 +120,18 @@ function App() {
     const handleDateRangeChange = async (start: Date | null, end: Date | null) => {
         setDateRange({ startDate: start, endDate: end });
 
-        // Sync to Supabase
+        // Sync to Supabase (로컬 타임존 기준 날짜 저장)
         const result = await updateUserSettings({
             budget,
-            start_date: start ? start.toISOString().split('T')[0] : null,
-            end_date: end ? end.toISOString().split('T')[0] : null,
+            start_date: start ? toISODateString(start) : null,
+            end_date: end ? toISODateString(end) : null,
         });
 
         if (!result.success) {
             console.error('Save date range error:', result.error);
             showError('설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+            console.log('Date range saved successfully');
         }
     };
 
@@ -135,16 +139,18 @@ function App() {
     const handleBudgetChange = async (newBudget: number) => {
         setBudget(newBudget);
 
-        // Sync to Supabase
+        // Sync to Supabase (로컬 타임존 기준 날짜 저장)
         const result = await updateUserSettings({
             budget: newBudget,
-            start_date: dateRange.startDate ? dateRange.startDate.toISOString().split('T')[0] : null,
-            end_date: dateRange.endDate ? dateRange.endDate.toISOString().split('T')[0] : null,
+            start_date: dateRange.startDate ? toISODateString(dateRange.startDate) : null,
+            end_date: dateRange.endDate ? toISODateString(dateRange.endDate) : null,
         });
 
         if (!result.success) {
             console.error('Save budget error:', result.error);
             showError('설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+            console.log('Budget saved successfully:', newBudget);
         }
     };
 
