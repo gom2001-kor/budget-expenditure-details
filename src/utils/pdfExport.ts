@@ -237,9 +237,9 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 10;
   const gap = 8;
-  const labelHeight = 15;
+  const labelHeight = 8; // 라벨 높이 (mm)
   const colWidth = (pageWidth - margin * 2 - gap) / 2;
-  const maxImgHeight = (pageHeight - margin * 2 - gap - labelHeight * 2) / 2 - 5;
+  const maxImgHeight = (pageHeight - margin * 2 - gap - labelHeight * 2) / 2 - 10;
 
   let positionInPage = 0;
 
@@ -267,10 +267,11 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
 
     // 라벨을 html2canvas로 렌더링
     const labelText = `${formatDate(expense.date)} ${formatTime(expense.time) || ''} - ${expense.store_name}`;
+    const displayText = labelText.length > 35 ? labelText.slice(0, 35) + '...' : labelText;
     const labelHtml = `
-            <div style="width: ${colWidth * 3.78}px; padding: 4px 0; font-family: Pretendard, -apple-system, sans-serif;">
-                <p style="margin: 0; font-size: 11px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${labelText.length > 35 ? labelText.slice(0, 35) + '...' : labelText}
+            <div style="width: ${colWidth * 3.78}px; padding: 2px 0; font-family: Pretendard, -apple-system, sans-serif; line-height: 1.4;">
+                <p style="margin: 0; font-size: 10px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${displayText}
                 </p>
             </div>
         `;
@@ -292,7 +293,8 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
       const labelImgData = labelCanvas.toDataURL('image/png');
       const labelImgWidth = colWidth;
       const labelImgHeight = (labelCanvas.height / labelCanvas.width) * labelImgWidth;
-      pdf.addImage(labelImgData, 'PNG', x, y, labelImgWidth, Math.min(labelImgHeight, labelHeight));
+      // 라벨 이미지는 원본 비율 유지 (잘림 방지)
+      pdf.addImage(labelImgData, 'PNG', x, y, labelImgWidth, labelImgHeight);
     } catch (err) {
       console.error('Failed to render label:', err);
     } finally {
