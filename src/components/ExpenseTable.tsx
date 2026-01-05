@@ -27,6 +27,9 @@ export function ExpenseTable({ expenses, onEdit, onDelete, onViewReceipt }: Expe
                                 가게명
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50">
+                                주소
+                            </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50">
                                 카테고리
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50">
@@ -58,8 +61,11 @@ export function ExpenseTable({ expenses, onEdit, onDelete, onViewReceipt }: Expe
                                     <td className="px-4 py-3 text-sm text-text-secondary">
                                         {formatTime(expense.time)}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-text-primary font-medium max-w-xs truncate">
+                                    <td className="px-4 py-3 text-sm text-text-primary font-medium max-w-[120px] truncate">
                                         {expense.store_name}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-text-secondary max-w-[150px] truncate">
+                                        {expense.address || '-'}
                                     </td>
                                     <td className="px-4 py-3">
                                         <span
