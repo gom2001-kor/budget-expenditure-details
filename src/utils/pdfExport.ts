@@ -38,6 +38,50 @@ async function getImageDimensions(base64: string): Promise<{ width: number; heig
 }
 
 /**
+ * HTML 요소를 캔버스로 변환하여 PDF에 추가
+ */
+async function addHtmlToPdf(
+  pdf: jsPDF,
+  htmlContent: string,
+  addNewPage: boolean = true
+): Promise<void> {
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '794px';
+  container.style.backgroundColor = 'white';
+  container.style.padding = '40px';
+  container.style.fontFamily = 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif';
+  container.innerHTML = htmlContent;
+
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+
+    if (addNewPage) {
+      pdf.addPage();
+    }
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+    const imgX = (pdfWidth - imgWidth * ratio) / 2;
+
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+/**
  * 지출 내역을 PDF로 내보내기
  */
 export async function exportToPdf(
@@ -45,16 +89,6 @@ export async function exportToPdf(
   dateRange: DateRange,
   totalBudget: number
 ): Promise<void> {
-  // 임시 컨테이너 생성
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '794px'; // A4 width at 96dpi
-  container.style.backgroundColor = 'white';
-  container.style.padding = '40px';
-  container.style.fontFamily = 'Pretendard, sans-serif';
-
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
   const remaining = totalBudget - totalSpent;
 
@@ -65,7 +99,8 @@ export async function exportToPdf(
     ? format(dateRange.endDate, 'yyyy.MM.dd', { locale: ko })
     : '';
 
-  container.innerHTML = `
+  // 메인 보고서 HTML
+  const mainReportHtml = `
     <div style="margin-bottom: 30px;">
       <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">
         지출 내역 보고서
@@ -96,30 +131,32 @@ export async function exportToPdf(
       </div>
     </div>
     
-    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
       <thead>
         <tr style="background: #f8fafc;">
-          <th style="padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0;">날짜</th>
-          <th style="padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0;">시간</th>
-          <th style="padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0;">가게명</th>
-          <th style="padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0; max-width: 150px;">주소</th>
-          <th style="padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0;">카테고리</th>
-          <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid #e2e8f0;">금액</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">날짜</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">시간</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">가게명</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">주소</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">카테고리</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">지출 사유</th>
+          <th style="padding: 8px 6px; text-align: right; border-bottom: 1px solid #e2e8f0;">금액</th>
         </tr>
       </thead>
       <tbody>
         ${expenses.map((expense, index) => `
           <tr style="background: ${index % 2 === 0 ? 'white' : '#fafafa'};">
-            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatDate(expense.date)}</td>
-            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatTime(expense.time) || '-'}</td>
-            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${expense.store_name}</td>
-            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${expense.address || '-'}</td>
-            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">
-              <span style="display: inline-block; padding: 2px 8px; background: ${getCategoryColor(expense.category)}20; color: ${getCategoryColor(expense.category)}; border-radius: 4px; font-size: 11px;">
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatDate(expense.date)}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatTime(expense.time) || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${expense.store_name}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${expense.address || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">
+              <span style="display: inline-block; padding: 2px 6px; background: ${getCategoryColor(expense.category)}20; color: ${getCategoryColor(expense.category)}; border-radius: 4px; font-size: 10px;">
                 ${expense.category}
               </span>
             </td>
-            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; white-space: nowrap;">
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${expense.reason || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; white-space: nowrap;">
               ${formatCurrency(expense.amount)}
             </td>
           </tr>
@@ -131,6 +168,17 @@ export async function exportToPdf(
       생성일: ${format(new Date(), 'yyyy년 M월 d일 HH:mm', { locale: ko })}
     </div>
   `;
+
+  // PDF 생성 시작
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '794px';
+  container.style.backgroundColor = 'white';
+  container.style.padding = '40px';
+  container.style.fontFamily = 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif';
+  container.innerHTML = mainReportHtml;
 
   document.body.appendChild(container);
 
@@ -150,14 +198,26 @@ export async function exportToPdf(
     const imgHeight = canvas.height;
     const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
     const imgX = (pdfWidth - imgWidth * ratio) / 2;
-    const imgY = 0;
 
-    pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+    pdf.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
 
     // 영수증 이미지가 있는 지출들 필터링
     const expensesWithReceipts = expenses.filter(e => e.image_url);
 
     if (expensesWithReceipts.length > 0) {
+      // 영수증 첨부 표지 (html2canvas 사용)
+      const coverHtml = `
+                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 400px;">
+                    <h1 style="font-size: 32px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">
+                        영수증 첨부
+                    </h1>
+                    <p style="font-size: 18px; color: #64748b; margin: 0;">
+                        총 ${expensesWithReceipts.length}건의 영수증
+                    </p>
+                </div>
+            `;
+      await addHtmlToPdf(pdf, coverHtml, true);
+
       // 영수증 이미지 페이지 추가
       await addReceiptPages(pdf, expensesWithReceipts);
     }
@@ -170,31 +230,21 @@ export async function exportToPdf(
 }
 
 /**
- * 영수증 이미지를 PDF에 추가 (2열 레이아웃)
+ * 영수증 이미지를 PDF에 추가 (2열 레이아웃, html2canvas로 라벨 렌더링)
  */
 async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 15; // 여백
-  const gap = 10; // 이미지 간 간격
-  const labelHeight = 20; // 날짜/시간 라벨 높이
-  const colWidth = (pageWidth - margin * 2 - gap) / 2; // 2열
-  const maxImgHeight = (pageHeight - margin * 2 - gap - labelHeight * 2) / 2; // 2행
+  const margin = 10;
+  const gap = 8;
+  const labelHeight = 15;
+  const colWidth = (pageWidth - margin * 2 - gap) / 2;
+  const maxImgHeight = (pageHeight - margin * 2 - gap - labelHeight * 2) / 2 - 5;
 
-  // 영수증 섹션 표지 추가
-  pdf.addPage();
-  pdf.setFontSize(20);
-  pdf.setTextColor(15, 23, 42);
-  pdf.text('영수증 첨부', pageWidth / 2, 40, { align: 'center' });
-  pdf.setFontSize(12);
-  pdf.setTextColor(100, 116, 139);
-  pdf.text(`총 ${expenses.length}건의 영수증`, pageWidth / 2, 55, { align: 'center' });
+  let positionInPage = 0;
 
-  // 이미지 로딩 및 배치
-  let currentPage = 0;
-  let positionInPage = 0; // 0-3 (2x2 그리드)
-
-  for (const expense of expenses) {
+  for (let i = 0; i < expenses.length; i++) {
+    const expense = expenses[i];
     if (!expense.image_url) continue;
 
     const base64 = await fetchImageAsBase64(expense.image_url);
@@ -206,7 +256,6 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
     // 새 페이지 필요 여부 확인
     if (positionInPage === 0 || positionInPage >= 4) {
       pdf.addPage();
-      currentPage++;
       positionInPage = 0;
     }
 
@@ -216,11 +265,39 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
     const x = margin + col * (colWidth + gap);
     const y = margin + row * (maxImgHeight + labelHeight + gap);
 
-    // 날짜/시간 라벨 추가
-    pdf.setFontSize(10);
-    pdf.setTextColor(15, 23, 42);
-    const label = `${formatDate(expense.date)} ${formatTime(expense.time) || ''} - ${expense.store_name}`;
-    pdf.text(label.slice(0, 40) + (label.length > 40 ? '...' : ''), x, y + 5);
+    // 라벨을 html2canvas로 렌더링
+    const labelText = `${formatDate(expense.date)} ${formatTime(expense.time) || ''} - ${expense.store_name}`;
+    const labelHtml = `
+            <div style="width: ${colWidth * 3.78}px; padding: 4px 0; font-family: Pretendard, -apple-system, sans-serif;">
+                <p style="margin: 0; font-size: 11px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${labelText.length > 35 ? labelText.slice(0, 35) + '...' : labelText}
+                </p>
+            </div>
+        `;
+
+    const labelContainer = document.createElement('div');
+    labelContainer.style.position = 'absolute';
+    labelContainer.style.left = '-9999px';
+    labelContainer.style.top = '0';
+    labelContainer.style.backgroundColor = 'white';
+    labelContainer.innerHTML = labelHtml;
+    document.body.appendChild(labelContainer);
+
+    try {
+      const labelCanvas = await html2canvas(labelContainer, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const labelImgData = labelCanvas.toDataURL('image/png');
+      const labelImgWidth = colWidth;
+      const labelImgHeight = (labelCanvas.height / labelCanvas.width) * labelImgWidth;
+      pdf.addImage(labelImgData, 'PNG', x, y, labelImgWidth, Math.min(labelImgHeight, labelHeight));
+    } catch (err) {
+      console.error('Failed to render label:', err);
+    } finally {
+      document.body.removeChild(labelContainer);
+    }
 
     // 이미지 크기 계산 (비율 유지, 영역 내 맞춤)
     const aspectRatio = dimensions.width / dimensions.height;
@@ -245,4 +322,3 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
     positionInPage++;
   }
 }
-
