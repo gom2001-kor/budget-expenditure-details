@@ -269,8 +269,8 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
     const labelText = `${formatDate(expense.date)} ${formatTime(expense.time) || ''} - ${expense.store_name}`;
     const displayText = labelText.length > 35 ? labelText.slice(0, 35) + '...' : labelText;
     const labelHtml = `
-            <div style="width: ${colWidth * 3.78}px; padding: 2px 0; font-family: Pretendard, -apple-system, sans-serif; line-height: 1.4;">
-                <p style="margin: 0; font-size: 10px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div style="width: ${colWidth * 3.78}px; padding: 4px 0 8px 0; font-family: Pretendard, -apple-system, sans-serif; background: white;">
+                <p style="margin: 0; font-size: 12px; color: #1e293b; white-space: nowrap; overflow: visible; line-height: 1.5;">
                     ${displayText}
                 </p>
             </div>
@@ -281,14 +281,16 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
     labelContainer.style.left = '-9999px';
     labelContainer.style.top = '0';
     labelContainer.style.backgroundColor = 'white';
+    labelContainer.style.overflow = 'visible';
     labelContainer.innerHTML = labelHtml;
     document.body.appendChild(labelContainer);
 
     try {
       const labelCanvas = await html2canvas(labelContainer, {
-        scale: 2,
+        scale: 3, // 해상도 증가
         useCORS: true,
         logging: false,
+        backgroundColor: '#ffffff',
       });
       const labelImgData = labelCanvas.toDataURL('image/png');
       const labelImgWidth = colWidth;
