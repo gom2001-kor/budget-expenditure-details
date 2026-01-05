@@ -150,8 +150,8 @@ export async function exportToPdf(
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatTime(expense.time) || '-'}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${expense.store_name}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${expense.address || '-'}</td>
-            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">
-              <span style="display: inline-block; padding: 2px 6px; background: ${getCategoryColor(expense.category)}20; color: ${getCategoryColor(expense.category)}; border-radius: 4px; font-size: 10px;">
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: middle;">
+              <span style="display: inline-block; padding: 3px 8px; background: ${getCategoryColor(expense.category)}20; color: ${getCategoryColor(expense.category)}; border-radius: 4px; font-size: 10px; line-height: 1.2; vertical-align: middle;">
                 ${expense.category}
               </span>
             </td>
