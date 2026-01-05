@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Settings } from 'lucide-react';
 import { formatDateRange } from '../utils/dateUtils';
 import { formatCurrency, formatCurrencyInput, extractNumber } from '../utils/formatUtils';
@@ -25,6 +25,11 @@ export function Header({
     const [budgetInput, setBudgetInput] = useState(budget > 0 ? budget.toLocaleString('ko-KR') : '');
     const remaining = budget - spent;
     const spentPercentage = budget > 0 ? (spent / budget) * 100 : 0;
+
+    // budget prop이 외부에서 변경되면 input 값도 동기화
+    useEffect(() => {
+        setBudgetInput(budget > 0 ? budget.toLocaleString('ko-KR') : '');
+    }, [budget]);
 
     const handleBudgetChange = (value: string) => {
         const formatted = formatCurrencyInput(value);
