@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, Download, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface ReceiptImageModalProps {
@@ -18,15 +18,25 @@ export function ReceiptImageModal({
 }: ReceiptImageModalProps) {
     const [scale, setScale] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     if (!isOpen) return null;
 
     const handleZoomIn = () => {
-        setScale((prev) => Math.min(prev + 0.5, 3));
+        setScale((prev) => Math.min(prev + 0.25, 3));
     };
 
     const handleZoomOut = () => {
-        setScale((prev) => Math.max(prev - 0.5, 0.5));
+        setScale((prev) => Math.max(prev - 0.25, 0.5));
+    };
+
+    const handleResetZoom = () => {
+        setScale(1);
+        // 스크롤 위치 초기화
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+            scrollContainerRef.current.scrollLeft = 0;
+        }
     };
 
     const handleDownload = async () => {
@@ -60,43 +70,49 @@ export function ReceiptImageModal({
             onClick={onClose}
         >
             <div
-                className="relative w-full h-full md:w-auto md:h-auto md:max-w-4xl md:max-h-[90vh] bg-black md:bg-white md:rounded-3xl md:shadow-modal overflow-hidden"
+                className="relative w-full h-full bg-black flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent md:from-white md:to-white md:border-b md:border-border">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-body font-semibold text-white md:text-text-primary truncate max-w-[200px]">
+                {/* Header - Fixed */}
+                <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-black/90 border-b border-white/10">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-body font-semibold text-white truncate max-w-[150px] sm:max-w-[250px]">
                             {storeName}
                         </h2>
-                        <span className="text-caption text-white/70 md:text-text-secondary">
+                        <span className="text-caption text-white/70 flex-shrink-0">
                             {date}
                         </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                         {/* Zoom Controls */}
                         <button
                             onClick={handleZoomOut}
-                            className="p-2 rounded-full text-white md:text-text-secondary hover:bg-white/20 md:hover:bg-gray-100 transition-colors"
+                            className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
                             aria-label="축소"
                         >
                             <ZoomOut className="w-5 h-5" />
                         </button>
-                        <span className="text-sm text-white md:text-text-secondary min-w-[40px] text-center">
+                        <button
+                            onClick={handleResetZoom}
+                            className="px-2 py-1 rounded-lg text-sm text-white hover:bg-white/20 transition-colors min-w-[50px] text-center"
+                            aria-label="초기화"
+                        >
                             {Math.round(scale * 100)}%
-                        </span>
+                        </button>
                         <button
                             onClick={handleZoomIn}
-                            className="p-2 rounded-full text-white md:text-text-secondary hover:bg-white/20 md:hover:bg-gray-100 transition-colors"
+                            className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
                             aria-label="확대"
                         >
                             <ZoomIn className="w-5 h-5" />
                         </button>
 
+                        <div className="w-px h-6 bg-white/20 mx-1" />
+
                         {/* Download */}
                         <button
                             onClick={handleDownload}
-                            className="p-2 rounded-full text-white md:text-text-secondary hover:bg-white/20 md:hover:bg-gray-100 transition-colors ml-2"
+                            className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
                             aria-label="다운로드"
                         >
                             <Download className="w-5 h-5" />
@@ -105,7 +121,7 @@ export function ReceiptImageModal({
                         {/* Close */}
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-full text-white md:text-text-secondary hover:bg-white/20 md:hover:bg-gray-100 transition-colors"
+                            className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
                             aria-label="닫기"
                         >
                             <X className="w-5 h-5" />
@@ -113,26 +129,42 @@ export function ReceiptImageModal({
                     </div>
                 </div>
 
-                {/* Image Container */}
-                <div className="w-full h-full flex items-center justify-center overflow-auto p-4 pt-16 pb-4">
-                    {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                            <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                        </div>
-                    )}
-                    <img
-                        src={imageUrl}
-                        alt={`${storeName} 영수증`}
-                        className="max-w-full max-h-full object-contain transition-transform duration-200"
-                        style={{ transform: `scale(${scale})` }}
-                        onLoad={() => setIsLoading(false)}
-                        onError={() => setIsLoading(false)}
-                        draggable={false}
-                    />
+                {/* Image Container - Scrollable */}
+                <div
+                    ref={scrollContainerRef}
+                    className="flex-1 overflow-auto"
+                    style={{
+                        WebkitOverflowScrolling: 'touch',
+                    }}
+                >
+                    <div
+                        className="min-h-full flex items-start justify-center p-4"
+                        style={{
+                            minWidth: scale > 1 ? `${scale * 100}%` : '100%',
+                        }}
+                    >
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                                <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                            </div>
+                        )}
+                        <img
+                            src={imageUrl}
+                            alt={`${storeName} 영수증`}
+                            className="max-w-none transition-all duration-200"
+                            style={{
+                                width: `${scale * 100}%`,
+                                maxWidth: 'none',
+                            }}
+                            onLoad={() => setIsLoading(false)}
+                            onError={() => setIsLoading(false)}
+                            draggable={false}
+                        />
+                    </div>
                 </div>
 
                 {/* Mobile Download Button (Bottom) */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent md:hidden">
+                <div className="flex-shrink-0 p-4 bg-black/90 border-t border-white/10 md:hidden safe-bottom">
                     <button
                         onClick={handleDownload}
                         className="w-full h-12 flex items-center justify-center gap-2 bg-white text-text-primary font-semibold rounded-xl active:scale-95 transition-all"
@@ -145,3 +177,4 @@ export function ReceiptImageModal({
         </div>
     );
 }
+

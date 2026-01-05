@@ -119,14 +119,15 @@ function App() {
         setDateRange({ startDate: start, endDate: end });
 
         // Sync to Supabase
-        try {
-            await updateUserSettings({
-                budget,
-                start_date: start ? start.toISOString().split('T')[0] : null,
-                end_date: end ? end.toISOString().split('T')[0] : null,
-            });
-        } catch (err) {
-            console.error('Save date range error:', err);
+        const result = await updateUserSettings({
+            budget,
+            start_date: start ? start.toISOString().split('T')[0] : null,
+            end_date: end ? end.toISOString().split('T')[0] : null,
+        });
+
+        if (!result.success) {
+            console.error('Save date range error:', result.error);
+            showError('설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
         }
     };
 
@@ -135,14 +136,15 @@ function App() {
         setBudget(newBudget);
 
         // Sync to Supabase
-        try {
-            await updateUserSettings({
-                budget: newBudget,
-                start_date: dateRange.startDate ? dateRange.startDate.toISOString().split('T')[0] : null,
-                end_date: dateRange.endDate ? dateRange.endDate.toISOString().split('T')[0] : null,
-            });
-        } catch (err) {
-            console.error('Save budget error:', err);
+        const result = await updateUserSettings({
+            budget: newBudget,
+            start_date: dateRange.startDate ? dateRange.startDate.toISOString().split('T')[0] : null,
+            end_date: dateRange.endDate ? dateRange.endDate.toISOString().split('T')[0] : null,
+        });
+
+        if (!result.success) {
+            console.error('Save budget error:', result.error);
+            showError('설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
         }
     };
 
@@ -248,11 +250,15 @@ function App() {
             setDateRange({ startDate: null, endDate: null });
 
             // Reset settings in Supabase
-            await updateUserSettings({
+            const result = await updateUserSettings({
                 budget: 0,
                 start_date: null,
                 end_date: null,
             });
+
+            if (!result.success) {
+                console.warn('Settings reset warning:', result.error);
+            }
 
             success('모든 데이터가 초기화되었습니다.');
             setShowSettings(false);

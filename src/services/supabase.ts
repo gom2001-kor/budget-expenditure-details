@@ -114,20 +114,26 @@ export async function getUserSettings(userId: string = 'default_user'): Promise<
 /**
  * 사용자 설정 저장/업데이트 (upsert)
  */
-export async function updateUserSettings(settings: Partial<UserSettings>, userId: string = 'default_user'): Promise<UserSettings | null> {
+export async function updateUserSettings(settings: Partial<UserSettings>, userId: string = 'default_user'): Promise<{ success: boolean; data?: UserSettings; error?: string }> {
     const supabase = supabaseClient;
-    if (!supabase) return null;
+    if (!supabase) {
+        return { success: false, error: 'Supabase가 초기화되지 않았습니다.' };
+    }
+
+    const settingsToSave = {
+        user_id: userId,
+        budget: settings.budget ?? 0,
+        start_date: settings.start_date || null,
+        end_date: settings.end_date || null,
+        updated_at: new Date().toISOString()
+    };
+
+    console.log('Saving user settings:', settingsToSave);
 
     try {
         const { data, error } = await supabase
             .from('user_settings')
-            .upsert({
-                user_id: userId,
-                budget: settings.budget ?? 0,
-                start_date: settings.start_date || null,
-                end_date: settings.end_date || null,
-                updated_at: new Date().toISOString()
-            }, {
+            .upsert(settingsToSave, {
                 onConflict: 'user_id'
             })
             .select()
@@ -135,13 +141,15 @@ export async function updateUserSettings(settings: Partial<UserSettings>, userId
 
         if (error) {
             console.error('Update user settings error:', error);
-            return null;
+            return { success: false, error: `저장 실패: ${error.message}` };
         }
 
-        return data as UserSettings;
+        console.log('Settings saved successfully:', data);
+        return { success: true, data: data as UserSettings };
     } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
         console.error('Update user settings failed:', err);
-        return null;
+        return { success: false, error: errorMessage };
     }
 }
 
