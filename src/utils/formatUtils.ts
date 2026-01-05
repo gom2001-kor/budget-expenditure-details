@@ -34,6 +34,8 @@ export function getCategoryColor(category: string): string {
         '문화': '#8B5CF6',      // Purple
         '교육': '#06B6D4',      // Cyan
         '공과금': '#6366F1',    // Indigo
+        '커피 및 음료': '#92400E', // Brown
+        '간식': '#EC4899',      // Pink
         '기타': '#64748B',      // Slate
     };
     return colors[category] || colors['기타'];
@@ -50,6 +52,8 @@ export const CATEGORIES = [
     '문화',
     '교육',
     '공과금',
+    '커피 및 음료',
+    '간식',
     '기타',
 ];
 
