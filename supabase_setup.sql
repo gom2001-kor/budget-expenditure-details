@@ -12,36 +12,52 @@ CREATE TABLE IF NOT EXISTS expenses (
     address TEXT,
     amount INTEGER NOT NULL,
     category TEXT DEFAULT '기타',
+    reason TEXT,  -- 지출 사유 (v1.1 추가)
     image_url TEXT,
     user_id TEXT DEFAULT 'default_user',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Row Level Security 활성화
-ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+-- 기존 테이블에 reason 컬럼 추가 (이미 테이블이 있는 경우)
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS reason TEXT;
 
--- 3. 기존 정책 삭제 (충돌 방지)
+-- 2. user_settings 테이블 생성 (기기 간 설정 동기화용)
+CREATE TABLE IF NOT EXISTS user_settings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT DEFAULT 'default_user' UNIQUE,
+    budget INTEGER DEFAULT 0,
+    start_date DATE,
+    end_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Row Level Security 활성화
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+
+-- 4. 기존 정책 삭제 (충돌 방지)
 DROP POLICY IF EXISTS "Allow all operations" ON expenses;
 DROP POLICY IF EXISTS "Allow public select" ON expenses;
 DROP POLICY IF EXISTS "Allow public insert" ON expenses;
 DROP POLICY IF EXISTS "Allow public update" ON expenses;
 DROP POLICY IF EXISTS "Allow public delete" ON expenses;
 
--- 4. 모든 사용자가 읽기/쓰기 가능하도록 정책 생성 (개발용)
--- 방법 1: 단일 정책으로 모든 작업 허용
+DROP POLICY IF EXISTS "Allow all operations" ON user_settings;
+
+-- 5. 모든 사용자가 읽기/쓰기 가능하도록 정책 생성 (개발용)
 CREATE POLICY "Allow all operations" ON expenses
     FOR ALL
     USING (true)
     WITH CHECK (true);
 
--- 방법 2: (위 정책이 안 되면 아래 개별 정책 사용)
--- CREATE POLICY "Allow public select" ON expenses FOR SELECT USING (true);
--- CREATE POLICY "Allow public insert" ON expenses FOR INSERT WITH CHECK (true);
--- CREATE POLICY "Allow public update" ON expenses FOR UPDATE USING (true) WITH CHECK (true);
--- CREATE POLICY "Allow public delete" ON expenses FOR DELETE USING (true);
+CREATE POLICY "Allow all operations" ON user_settings
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
--- 5. updated_at 자동 업데이트 트리거
+-- 6. updated_at 자동 업데이트 트리거
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -56,6 +72,12 @@ CREATE TRIGGER update_expenses_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
+CREATE TRIGGER update_user_settings_updated_at
+    BEFORE UPDATE ON user_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- RLS 정책 문제 해결용 SQL (데이터가 저장되지 않을 때 실행)
 -- ============================================
@@ -63,6 +85,7 @@ CREATE TRIGGER update_expenses_updated_at
 -- 주의: 보안상 개발/테스트 용도로만 사용하세요.
 
 -- ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE user_settings DISABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- Storage 버킷 설정 (Dashboard에서 수동으로 설정 필요)
@@ -95,4 +118,5 @@ CREATE TRIGGER update_expenses_updated_at
 -- CREATE POLICY "Allow public deletes" ON storage.objects
 --     FOR DELETE
 --     USING (bucket_id = 'receipts');
+
 

@@ -1,4 +1,4 @@
-import { MapPin, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Edit2, Trash2, Image } from 'lucide-react';
 import type { Expense } from '../types';
 import { formatCurrency, getCategoryColor } from '../utils/formatUtils';
 import { formatDateWithDay, formatTime } from '../utils/dateUtils';
@@ -7,10 +7,11 @@ interface ExpenseCardProps {
     expense: Expense;
     onEdit: (expense: Expense) => void;
     onDelete: (id: string) => void;
+    onViewReceipt?: (expense: Expense) => void;
     isNew?: boolean;
 }
 
-export function ExpenseCard({ expense, onEdit, onDelete, isNew }: ExpenseCardProps) {
+export function ExpenseCard({ expense, onEdit, onDelete, onViewReceipt, isNew }: ExpenseCardProps) {
     const categoryColor = getCategoryColor(expense.category);
 
     return (
@@ -42,6 +43,16 @@ export function ExpenseCard({ expense, onEdit, onDelete, isNew }: ExpenseCardPro
 
                     {/* Action buttons */}
                     <div className="flex items-center gap-1 -mr-2">
+                        {/* 영수증 보기 버튼 */}
+                        {expense.image_url && onViewReceipt && (
+                            <button
+                                onClick={() => onViewReceipt(expense)}
+                                className="p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                aria-label="영수증 보기"
+                            >
+                                <Image className="w-4 h-4 text-primary" />
+                            </button>
+                        )}
                         <button
                             onClick={() => onEdit(expense)}
                             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -67,6 +78,14 @@ export function ExpenseCard({ expense, onEdit, onDelete, isNew }: ExpenseCardPro
                     </div>
                 )}
 
+                {/* Reason - 지출 사유 */}
+                {expense.reason && (
+                    <div className="text-caption text-text-secondary mb-2 bg-gray-50 rounded-lg px-2.5 py-1.5">
+                        <span className="text-text-secondary/70">사유:</span>{' '}
+                        <span className="text-text-primary">{expense.reason}</span>
+                    </div>
+                )}
+
                 {/* Category + Amount */}
                 <div className="flex items-center justify-between mt-3">
                     <span
@@ -86,3 +105,4 @@ export function ExpenseCard({ expense, onEdit, onDelete, isNew }: ExpenseCardPro
         </div>
     );
 }
+

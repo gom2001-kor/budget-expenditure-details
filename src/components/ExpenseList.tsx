@@ -7,10 +7,11 @@ interface ExpenseListProps {
     expenses: Expense[];
     onEdit: (expense: Expense) => void;
     onDelete: (id: string) => void;
+    onViewReceipt?: (expense: Expense) => void;
     newExpenseId?: string | null;
 }
 
-export function ExpenseList({ expenses, onEdit, onDelete, newExpenseId }: ExpenseListProps) {
+export function ExpenseList({ expenses, onEdit, onDelete, onViewReceipt, newExpenseId }: ExpenseListProps) {
     if (expenses.length === 0) {
         return <EmptyState />;
     }
@@ -25,6 +26,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, newExpenseId }: Expens
                         expense={expense}
                         onEdit={onEdit}
                         onDelete={onDelete}
+                        onViewReceipt={onViewReceipt}
                         isNew={expense.id === newExpenseId}
                     />
                 ))}
@@ -36,8 +38,10 @@ export function ExpenseList({ expenses, onEdit, onDelete, newExpenseId }: Expens
                     expenses={expenses}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onViewReceipt={onViewReceipt}
                 />
             </div>
         </>
     );
 }
+

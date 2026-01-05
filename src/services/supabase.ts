@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { UserSettings } from '../types';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -80,6 +81,71 @@ export async function testConnectionDetailed(): Promise<{ success: boolean; mess
     }
 }
 
+/**
+ * 사용자 설정 조회
+ */
+export async function getUserSettings(userId: string = 'default_user'): Promise<UserSettings | null> {
+    const supabase = supabaseClient;
+    if (!supabase) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            // 데이터가 없는 경우 null 반환 (에러 아님)
+            if (error.code === 'PGRST116') {
+                return null;
+            }
+            console.error('Get user settings error:', error);
+            return null;
+        }
+
+        return data as UserSettings;
+    } catch (err) {
+        console.error('Get user settings failed:', err);
+        return null;
+    }
+}
+
+/**
+ * 사용자 설정 저장/업데이트 (upsert)
+ */
+export async function updateUserSettings(settings: Partial<UserSettings>, userId: string = 'default_user'): Promise<UserSettings | null> {
+    const supabase = supabaseClient;
+    if (!supabase) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('user_settings')
+            .upsert({
+                user_id: userId,
+                budget: settings.budget ?? 0,
+                start_date: settings.start_date || null,
+                end_date: settings.end_date || null,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Update user settings error:', error);
+            return null;
+        }
+
+        return data as UserSettings;
+    } catch (err) {
+        console.error('Update user settings failed:', err);
+        return null;
+    }
+}
+
 // 기본 설정값 (하드코딩)
 export const DEFAULT_SUPABASE_URL = 'https://zxinmrrarkvgkvlgjhec.supabase.co';
 export const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4aW5tcnJhcmt2Z2t2bGdqaGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDM5MjYsImV4cCI6MjA4MzAxOTkyNn0.UdrSHWF3MEEIbwYmIyIx8bKpve6clwxoWOGoGI3odT4';
+

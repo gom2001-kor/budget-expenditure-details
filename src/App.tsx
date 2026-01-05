@@ -10,14 +10,14 @@ import { ExpenseEditModal } from './components/ExpenseEditModal';
 import { AlertModal } from './components/AlertModal';
 import { Toast } from './components/Toast';
 import { Settings } from './components/Settings';
+import { ReceiptImageModal } from './components/ReceiptImageModal';
 
 // Services
-import { initializeSupabase, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from './services/supabase';
+import { initializeSupabase, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, getUserSettings, updateUserSettings } from './services/supabase';
 import { analyzeReceipt } from './services/gemini';
 import { uploadImage } from './services/storage';
 
 // Hooks
-import { useLocalStorage } from './hooks/useLocalStorage';
 import { useExpenses } from './hooks/useExpenses';
 import { useToast } from './hooks/useToast';
 
@@ -29,23 +29,25 @@ import { exportToPdf } from './utils/pdfExport';
 import type { Expense, DateRange } from './types';
 
 function App() {
-    // Local storage state
-    const [settings, setSettings] = useLocalStorage('expense-app-settings', {
-        budget: 0,
-        dateRange: {
-            startDate: null as string | null,
-            endDate: null as string | null,
-        },
-    });
-
     // App state
     const [showSettings, setShowSettings] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [supabaseInitialized, setSupabaseInitialized] = useState(false);
+    const [settingsLoading, setSettingsLoading] = useState(true);
+
+    // Settings state (from Supabase)
+    const [budget, setBudget] = useState(0);
+    const [dateRange, setDateRange] = useState<DateRange>({
+        startDate: null,
+        endDate: null,
+    });
 
     // Edit modal state
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+    // Receipt image modal state
+    const [viewingReceipt, setViewingReceipt] = useState<Expense | null>(null);
 
     // Alert state
     const [alertState, setAlertState] = useState({
@@ -60,12 +62,6 @@ function App() {
     // Toast
     const { toasts, success, error: showError, removeToast } = useToast();
 
-    // Parse dates from settings
-    const dateRange: DateRange = {
-        startDate: settings.dateRange.startDate ? new Date(settings.dateRange.startDate) : null,
-        endDate: settings.dateRange.endDate ? new Date(settings.dateRange.endDate) : null,
-    };
-
     // Initialize Supabase
     useEffect(() => {
         try {
@@ -76,6 +72,30 @@ function App() {
             showError('Supabase 연결에 실패했습니다.');
         }
     }, []);
+
+    // Load settings from Supabase
+    useEffect(() => {
+        const loadSettings = async () => {
+            if (!supabaseInitialized) return;
+
+            try {
+                const settings = await getUserSettings();
+                if (settings) {
+                    setBudget(settings.budget || 0);
+                    setDateRange({
+                        startDate: settings.start_date ? new Date(settings.start_date) : null,
+                        endDate: settings.end_date ? new Date(settings.end_date) : null,
+                    });
+                }
+            } catch (err) {
+                console.error('Load settings error:', err);
+            } finally {
+                setSettingsLoading(false);
+            }
+        };
+
+        loadSettings();
+    }, [supabaseInitialized]);
 
     // Expenses hook
     const {
@@ -94,20 +114,36 @@ function App() {
         return isDateInRange(expense.date, dateRange.startDate, dateRange.endDate);
     });
 
-    // Handle date range change
-    const handleDateRangeChange = (start: Date | null, end: Date | null) => {
-        setSettings({
-            ...settings,
-            dateRange: {
-                startDate: start ? start.toISOString() : null,
-                endDate: end ? end.toISOString() : null,
-            },
-        });
+    // Handle date range change with Supabase sync
+    const handleDateRangeChange = async (start: Date | null, end: Date | null) => {
+        setDateRange({ startDate: start, endDate: end });
+
+        // Sync to Supabase
+        try {
+            await updateUserSettings({
+                budget,
+                start_date: start ? start.toISOString().split('T')[0] : null,
+                end_date: end ? end.toISOString().split('T')[0] : null,
+            });
+        } catch (err) {
+            console.error('Save date range error:', err);
+        }
     };
 
-    // Handle budget change
-    const handleBudgetChange = (budget: number) => {
-        setSettings({ ...settings, budget });
+    // Handle budget change with Supabase sync
+    const handleBudgetChange = async (newBudget: number) => {
+        setBudget(newBudget);
+
+        // Sync to Supabase
+        try {
+            await updateUserSettings({
+                budget: newBudget,
+                start_date: dateRange.startDate ? dateRange.startDate.toISOString().split('T')[0] : null,
+                end_date: dateRange.endDate ? dateRange.endDate.toISOString().split('T')[0] : null,
+            });
+        } catch (err) {
+            console.error('Save budget error:', err);
+        }
     };
 
     // Handle receipt upload
@@ -145,6 +181,7 @@ function App() {
                 address: analyzed.address,
                 amount: analyzed.amount,
                 category: '기타',
+                reason: null,
                 image_url: imageUrl,
                 user_id: 'default_user',
             });
@@ -196,14 +233,27 @@ function App() {
         }
     };
 
+    // Handle view receipt
+    const handleViewReceipt = (expense: Expense) => {
+        if (expense.image_url) {
+            setViewingReceipt(expense);
+        }
+    };
+
     // Handle data reset
     const handleResetData = async () => {
         try {
             await clearAll();
-            setSettings({
+            setBudget(0);
+            setDateRange({ startDate: null, endDate: null });
+
+            // Reset settings in Supabase
+            await updateUserSettings({
                 budget: 0,
-                dateRange: { startDate: null, endDate: null },
+                start_date: null,
+                end_date: null,
             });
+
             success('모든 데이터가 초기화되었습니다.');
             setShowSettings(false);
         } catch (err) {
@@ -214,7 +264,7 @@ function App() {
     // Handle PDF export
     const handleExportPdf = async () => {
         try {
-            await exportToPdf(filteredExpenses, dateRange, settings.budget);
+            await exportToPdf(filteredExpenses, dateRange, budget);
             success('PDF가 다운로드되었습니다.');
         } catch (err) {
             showError('PDF 생성에 실패했습니다.');
@@ -237,7 +287,7 @@ function App() {
             <Header
                 startDate={dateRange.startDate}
                 endDate={dateRange.endDate}
-                budget={settings.budget}
+                budget={budget}
                 spent={totalSpent}
                 onDateClick={() => setShowDatePicker(true)}
                 onBudgetChange={handleBudgetChange}
@@ -265,7 +315,7 @@ function App() {
                         )}
                     </div>
 
-                    {loading ? (
+                    {loading || settingsLoading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map((i) => (
                                 <div key={i} className="bg-white rounded-2xl p-4 shadow-card">
@@ -283,6 +333,7 @@ function App() {
                             expenses={filteredExpenses}
                             onEdit={setEditingExpense}
                             onDelete={handleDelete}
+                            onViewReceipt={handleViewReceipt}
                             newExpenseId={newExpenseId}
                         />
                     )}
@@ -326,6 +377,15 @@ function App() {
                 onClose={() => setEditingExpense(null)}
             />
 
+            {/* Receipt Image Modal */}
+            <ReceiptImageModal
+                isOpen={!!viewingReceipt}
+                imageUrl={viewingReceipt?.image_url || ''}
+                storeName={viewingReceipt?.store_name || ''}
+                date={viewingReceipt?.date || ''}
+                onClose={() => setViewingReceipt(null)}
+            />
+
             {/* Alert Modal */}
             <AlertModal
                 isOpen={alertState.isOpen}
@@ -342,3 +402,4 @@ function App() {
 }
 
 export default App;
+

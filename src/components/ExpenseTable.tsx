@@ -1,4 +1,4 @@
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Image } from 'lucide-react';
 import type { Expense } from '../types';
 import { formatCurrency, getCategoryColor } from '../utils/formatUtils';
 import { formatDate, formatTime } from '../utils/dateUtils';
@@ -7,9 +7,10 @@ interface ExpenseTableProps {
     expenses: Expense[];
     onEdit: (expense: Expense) => void;
     onDelete: (id: string) => void;
+    onViewReceipt?: (expense: Expense) => void;
 }
 
-export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseTableProps) {
+export function ExpenseTable({ expenses, onEdit, onDelete, onViewReceipt }: ExpenseTableProps) {
     return (
         <div className="bg-white rounded-2xl shadow-card overflow-hidden">
             <div className="overflow-x-auto">
@@ -28,10 +29,13 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseTableProps) 
                             <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50">
                                 카테고리
                             </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50">
+                                지출 사유
+                            </th>
                             <th className="px-4 py-3 text-right text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50">
                                 금액
                             </th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50 w-24">
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-text-secondary sticky top-0 bg-slate-50 w-28">
                                 관리
                             </th>
                         </tr>
@@ -68,6 +72,9 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseTableProps) 
                                             {expense.category}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-3 text-sm text-text-secondary max-w-[150px] truncate">
+                                        {expense.reason || '-'}
+                                    </td>
                                     <td className="px-4 py-3 text-right">
                                         <span className="text-sm font-bold text-text-primary tabular-nums">
                                             {formatCurrency(expense.amount)}
@@ -75,6 +82,16 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseTableProps) 
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-center gap-1">
+                                            {/* 영수증 보기 버튼 */}
+                                            {expense.image_url && onViewReceipt && (
+                                                <button
+                                                    onClick={() => onViewReceipt(expense)}
+                                                    className="p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                                    aria-label="영수증 보기"
+                                                >
+                                                    <Image className="w-4 h-4 text-primary" />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => onEdit(expense)}
                                                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -100,3 +117,4 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseTableProps) 
         </div>
     );
 }
+

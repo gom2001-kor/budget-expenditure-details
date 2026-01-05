@@ -6,8 +6,19 @@ export interface Expense {
     address: string | null;
     amount: number;
     category: string;
+    reason: string | null; // 지출 사유
     image_url: string | null;
     user_id: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface UserSettings {
+    id?: string;
+    user_id: string;
+    budget: number;
+    start_date: string | null; // YYYY-MM-DD
+    end_date: string | null; // YYYY-MM-DD
     created_at?: string;
     updated_at?: string;
 }

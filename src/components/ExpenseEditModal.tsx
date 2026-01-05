@@ -23,6 +23,7 @@ export function ExpenseEditModal({
         address: '',
         amount: '',
         category: '기타',
+        reason: '',
     });
 
     useEffect(() => {
@@ -34,6 +35,7 @@ export function ExpenseEditModal({
                 address: expense.address || '',
                 amount: expense.amount.toLocaleString('ko-KR'),
                 category: expense.category,
+                reason: expense.reason || '',
             });
         }
     }, [expense]);
@@ -50,6 +52,7 @@ export function ExpenseEditModal({
             address: formData.address || null,
             amount: extractNumber(formData.amount),
             category: formData.category,
+            reason: formData.reason || null,
         });
 
         onClose();
@@ -175,6 +178,24 @@ export function ExpenseEditModal({
                         </select>
                     </div>
 
+                    {/* Reason - 지출 사유 */}
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                            지출 사유
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.reason}
+                            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                            placeholder="예: 팀 회식 비용, 교통비 등"
+                            className="
+                w-full h-12 px-4 rounded-xl border border-border
+                focus:border-primary focus:ring-2 focus:ring-primary/20
+                transition-all
+              "
+                        />
+                    </div>
+
                     {/* Amount */}
                     <div>
                         <label className="block text-sm font-medium text-text-secondary mb-1.5">
@@ -218,3 +239,4 @@ export function ExpenseEditModal({
         </div>
     );
 }
+
