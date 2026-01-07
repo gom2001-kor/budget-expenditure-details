@@ -1,23 +1,33 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2, Wallet } from 'lucide-react';
 import { testConnectionDetailed } from '../services/supabase';
+import { formatCurrencyInput, extractNumber } from '../utils/formatUtils';
 
 interface SettingsProps {
     onBack: () => void;
     onResetData: () => void;
+    budget: number;
+    onBudgetChange: (budget: number) => void;
 }
 
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini-api-key';
 
-export function Settings({ onBack, onResetData }: SettingsProps) {
+export function Settings({ onBack, onResetData, budget, onBudgetChange }: SettingsProps) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+    const [budgetInput, setBudgetInput] = useState(budget > 0 ? budget.toLocaleString('ko-KR') : '');
+    const [isBudgetSaved, setIsBudgetSaved] = useState(false);
 
     // DB 테스트 관련 state
     const [dbTestLoading, setDbTestLoading] = useState(false);
     const [dbTestResult, setDbTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // Budget 동기화
+    useEffect(() => {
+        setBudgetInput(budget > 0 ? budget.toLocaleString('ko-KR') : '');
+    }, [budget]);
 
     // Load saved API key on mount
     useEffect(() => {
@@ -246,6 +256,78 @@ export function Settings({ onBack, onResetData }: SettingsProps) {
                                         </p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Budget Settings Section */}
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
+                        <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                            예산 설정
+                        </h2>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Wallet className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-body font-semibold text-text-primary mb-1">총 예산 금액</p>
+                                <p className="text-caption text-text-secondary mb-3">
+                                    월별 또는 기간별로 사용할 총 예산을 설정하세요.
+                                </p>
+
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-text-primary">₩</span>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={budgetInput}
+                                        onChange={(e) => {
+                                            const formatted = formatCurrencyInput(e.target.value);
+                                            setBudgetInput(formatted);
+                                        }}
+                                        placeholder="0"
+                                        className="
+                                            w-full h-12 pl-10 pr-4
+                                            border-2 border-border rounded-xl
+                                            text-xl font-bold text-text-primary tabular-nums
+                                            placeholder:text-text-secondary/50
+                                            focus:border-primary focus:outline-none
+                                            transition-colors
+                                        "
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        const newBudget = extractNumber(budgetInput);
+                                        onBudgetChange(newBudget);
+                                        setIsBudgetSaved(true);
+                                        setTimeout(() => setIsBudgetSaved(false), 2000);
+                                    }}
+                                    className={`
+                                        w-full h-10 mt-3 rounded-xl font-semibold text-sm
+                                        flex items-center justify-center gap-2
+                                        transition-all active:scale-95
+                                        ${isBudgetSaved
+                                            ? 'bg-success text-white'
+                                            : 'bg-primary text-white hover:bg-primary-700'
+                                        }
+                                    `}
+                                >
+                                    {isBudgetSaved ? (
+                                        <>
+                                            <Check className="w-4 h-4" />
+                                            저장됨
+                                        </>
+                                    ) : (
+                                        '예산 저장'
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>

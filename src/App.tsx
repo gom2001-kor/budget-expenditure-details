@@ -421,6 +421,8 @@ function App() {
             <Settings
                 onBack={() => setShowSettings(false)}
                 onResetData={handleResetData}
+                budget={budget}
+                onBudgetChange={handleBudgetChange}
             />
         );
     }
@@ -434,7 +436,6 @@ function App() {
                 budget={budget}
                 spent={totalSpent}
                 onDateClick={() => setShowDatePicker(true)}
-                onBudgetChange={handleBudgetChange}
                 onSettingsClick={() => setShowSettings(true)}
             />
 

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Calendar, Settings, X } from 'lucide-react';
 import { formatDateRange } from '../utils/dateUtils';
-import { formatCurrency, formatCurrencyInput, extractNumber } from '../utils/formatUtils';
+import { formatCurrency } from '../utils/formatUtils';
 
 interface HeaderProps {
     startDate: Date | null;
@@ -9,7 +9,6 @@ interface HeaderProps {
     budget: number;
     spent: number;
     onDateClick: () => void;
-    onBudgetChange: (budget: number) => void;
     onSettingsClick: () => void;
 }
 
@@ -26,10 +25,8 @@ export function Header({
     budget,
     spent,
     onDateClick,
-    onBudgetChange,
     onSettingsClick,
 }: HeaderProps) {
-    const [budgetInput, setBudgetInput] = useState(budget > 0 ? budget.toLocaleString('ko-KR') : '');
     const remaining = budget - spent;
     const spentPercentage = budget > 0 ? (spent / budget) * 100 : 0;
 
@@ -41,21 +38,19 @@ export function Header({
         colorClass: '',
     });
 
-    // budget prop이 외부에서 변경되면 input 값도 동기화
-    useEffect(() => {
-        setBudgetInput(budget > 0 ? budget.toLocaleString('ko-KR') : '');
-    }, [budget]);
-
-    const handleBudgetChange = (value: string) => {
-        const formatted = formatCurrencyInput(value);
-        setBudgetInput(formatted);
-        onBudgetChange(extractNumber(value));
-    };
-
     const getRemainingColor = () => {
         if (remaining < 0) return 'text-error';
         if (spentPercentage >= 80) return 'text-warning';
         return 'text-success';
+    };
+
+    const handleBudgetClick = () => {
+        setAmountModal({
+            isOpen: true,
+            title: '총 예산',
+            amount: budget,
+            colorClass: 'text-text-primary',
+        });
     };
 
     const handleSpentClick = () => {
@@ -121,26 +116,16 @@ export function Header({
 
                     {/* Budget Dashboard */}
                     <div className="grid grid-cols-3 gap-2">
-                        {/* Total Budget */}
-                        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm">
+                        {/* Total Budget - Clickable */}
+                        <button
+                            onClick={handleBudgetClick}
+                            className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm text-left hover:bg-white active:scale-[0.98] transition-all"
+                        >
                             <p className="text-xs text-text-secondary mb-1">총 예산</p>
-                            <div className="relative">
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-base font-bold text-text-primary">₩</span>
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={budgetInput}
-                                    onChange={(e) => handleBudgetChange(e.target.value)}
-                                    placeholder="0"
-                                    className="
-                                        w-full pl-4 text-lg font-bold text-text-primary
-                                        bg-transparent border-none outline-none
-                                        tabular-nums
-                                    "
-                                    aria-label="총 예산 입력"
-                                />
-                            </div>
-                        </div>
+                            <p className="text-lg font-bold text-text-primary tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
+                                {formatCurrency(budget)}
+                            </p>
+                        </button>
 
                         {/* Total Spent - Clickable */}
                         <button
