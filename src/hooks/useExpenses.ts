@@ -10,6 +10,19 @@ export function useExpenses(supabaseInitialized: boolean) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // 정렬 헬퍼 함수 - 날짜/시간 기준 내림차순
+    const sortExpenses = (items: Expense[]): Expense[] => {
+        return [...items].sort((a, b) => {
+            // Sort by date descending
+            const dateCompare = b.date.localeCompare(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            // If same date, sort by time descending
+            const timeA = a.time || '00:00';
+            const timeB = b.time || '00:00';
+            return timeB.localeCompare(timeA);
+        });
+    };
+
     // 지출 목록 조회
     const fetchExpenses = useCallback(async () => {
         if (!supabaseInitialized) return;
@@ -19,7 +32,7 @@ export function useExpenses(supabaseInitialized: boolean) {
 
         try {
             const data = await getExpenses();
-            setExpenses(data);
+            setExpenses(sortExpenses(data));
         } catch (err) {
             setError(err instanceof Error ? err.message : '지출 조회 실패');
         } finally {
@@ -40,7 +53,7 @@ export function useExpenses(supabaseInitialized: boolean) {
     ) => {
         try {
             const newExpense = await addExpenseService(expense);
-            setExpenses((prev) => [newExpense, ...prev]);
+            setExpenses((prev) => sortExpenses([newExpense, ...prev]));
             return newExpense;
         } catch (err) {
             throw err;
@@ -55,7 +68,7 @@ export function useExpenses(supabaseInitialized: boolean) {
         try {
             const updated = await updateExpenseService(id, updates);
             setExpenses((prev) =>
-                prev.map((e) => (e.id === id ? updated : e))
+                sortExpenses(prev.map((e) => (e.id === id ? updated : e)))
             );
             return updated;
         } catch (err) {
