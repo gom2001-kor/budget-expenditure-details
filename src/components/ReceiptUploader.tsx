@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
-import { Camera, Image, Loader2, CheckCircle, X } from 'lucide-react';
+import { Camera, Image, Loader2, CheckCircle, X, PenLine } from 'lucide-react';
 
 interface ReceiptUploaderProps {
     isAnalyzing: boolean;
     onFileSelected: (file: File) => void;
     onCancelAnalysis?: () => void;
+    onManualEntry?: () => void;
     disabled?: boolean;
 }
 
@@ -12,6 +13,7 @@ export function ReceiptUploader({
     isAnalyzing,
     onFileSelected,
     onCancelAnalysis,
+    onManualEntry,
     disabled = false,
 }: ReceiptUploaderProps) {
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -63,14 +65,14 @@ export function ReceiptUploader({
         <div className="bg-white rounded-2xl shadow-card p-4 mb-4">
             <h2 className="text-subtitle text-text-primary mb-4">영수증 업로드</h2>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
                 {/* Camera Button */}
                 <button
                     onClick={() => cameraInputRef.current?.click()}
                     disabled={disabled || isAnalyzing}
                     className="
             relative flex flex-col items-center justify-center
-            h-32 rounded-xl
+            h-28 rounded-xl
             bg-gradient-to-br from-primary to-primary-700
             text-white
             hover:-translate-y-1 active:translate-y-0
@@ -79,8 +81,8 @@ export function ReceiptUploader({
             shadow-md hover:shadow-lg
           "
                 >
-                    <Camera className="w-8 h-8 mb-2" />
-                    <span className="font-semibold text-sm">카메라 촬영</span>
+                    <Camera className="w-7 h-7 mb-1.5" />
+                    <span className="font-semibold text-xs">카메라 촬영</span>
                 </button>
                 <input
                     ref={cameraInputRef}
@@ -98,7 +100,7 @@ export function ReceiptUploader({
                     disabled={disabled || isAnalyzing}
                     className="
             relative flex flex-col items-center justify-center
-            h-32 rounded-xl
+            h-28 rounded-xl
             border-2 border-primary
             text-primary bg-white
             hover:-translate-y-1 active:translate-y-0
@@ -107,8 +109,8 @@ export function ReceiptUploader({
             shadow-sm hover:shadow-md
           "
                 >
-                    <Image className="w-8 h-8 mb-2" />
-                    <span className="font-semibold text-sm">갤러리 선택</span>
+                    <Image className="w-7 h-7 mb-1.5" />
+                    <span className="font-semibold text-xs">갤러리 선택</span>
                 </button>
                 <input
                     ref={galleryInputRef}
@@ -118,6 +120,25 @@ export function ReceiptUploader({
                     className="hidden"
                     aria-label="갤러리에서 선택"
                 />
+
+                {/* Manual Entry Button */}
+                <button
+                    onClick={onManualEntry}
+                    disabled={disabled || isAnalyzing}
+                    className="
+            relative flex flex-col items-center justify-center
+            h-28 rounded-xl
+            border-2 border-emerald-500
+            text-emerald-600 bg-white
+            hover:-translate-y-1 active:translate-y-0
+            transition-all duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+            shadow-sm hover:shadow-md
+          "
+                >
+                    <PenLine className="w-7 h-7 mb-1.5" />
+                    <span className="font-semibold text-xs">수동 입력</span>
+                </button>
             </div>
 
             {/* Preview & Status */}

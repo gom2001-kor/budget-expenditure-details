@@ -7,6 +7,7 @@ import { DateRangePicker } from './components/DateRangePicker';
 import { ReceiptUploader } from './components/ReceiptUploader';
 import { ExpenseList } from './components/ExpenseList';
 import { ExpenseEditModal } from './components/ExpenseEditModal';
+import { ManualExpenseModal } from './components/ManualExpenseModal';
 import { AlertModal } from './components/AlertModal';
 import { Toast } from './components/Toast';
 import { Settings } from './components/Settings';
@@ -59,6 +60,9 @@ function App() {
     // New expense animation
     const [newExpenseId, setNewExpenseId] = useState<string | null>(null);
 
+    // Manual expense modal state
+    const [showManualExpenseModal, setShowManualExpenseModal] = useState(false);
+
     // Toast
     const { toasts, success, error: showError, removeToast } = useToast();
 
@@ -110,11 +114,21 @@ function App() {
         totalSpent,
     } = useExpenses(supabaseInitialized);
 
-    // Filter expenses by date range
-    const filteredExpenses = expenses.filter((expense) => {
-        if (!dateRange.startDate || !dateRange.endDate) return true;
-        return isDateInRange(expense.date, dateRange.startDate, dateRange.endDate);
-    });
+    // Filter expenses by date range and sort by date/time descending
+    const filteredExpenses = expenses
+        .filter((expense) => {
+            if (!dateRange.startDate || !dateRange.endDate) return true;
+            return isDateInRange(expense.date, dateRange.startDate, dateRange.endDate);
+        })
+        .sort((a, b) => {
+            // Sort by date descending
+            const dateCompare = b.date.localeCompare(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            // If same date, sort by time descending
+            const timeA = a.time || '00:00';
+            const timeB = b.time || '00:00';
+            return timeB.localeCompare(timeA);
+        });
 
     // Handle date range change with Supabase sync
     const handleDateRangeChange = async (start: Date | null, end: Date | null) => {
@@ -208,6 +222,63 @@ function App() {
             showError(err instanceof Error ? err.message : '영수증 처리에 실패했습니다.');
         } finally {
             setIsAnalyzing(false);
+        }
+    }, [dateRange, addExpense, success, showError]);
+
+    // Handle manual expense add
+    const handleManualExpenseAdd = useCallback(async (data: {
+        date: string;
+        time: string | null;
+        store_name: string;
+        address: string | null;
+        amount: number;
+        category: string;
+        reason: string | null;
+        imageFile: File | null;
+    }) => {
+        // Date range validation
+        if (!isDateInRange(data.date, dateRange.startDate, dateRange.endDate)) {
+            setShowManualExpenseModal(false);
+            setAlertState({
+                isOpen: true,
+                title: '기간 외 날짜',
+                message: `설정된 기간(${formatDateRangeKorean(dateRange.startDate, dateRange.endDate)})을 벗어난 날짜입니다.`,
+            });
+            return;
+        }
+
+        try {
+            // Upload image if provided
+            let imageUrl = null;
+            if (data.imageFile) {
+                try {
+                    imageUrl = await uploadImage(data.imageFile);
+                } catch (err) {
+                    console.warn('Image upload failed:', err);
+                }
+            }
+
+            // Save to database
+            const newExpense = await addExpense({
+                date: data.date,
+                time: data.time,
+                store_name: data.store_name,
+                address: data.address,
+                amount: data.amount,
+                category: data.category,
+                reason: data.reason,
+                image_url: imageUrl,
+                user_id: 'default_user',
+            });
+
+            setNewExpenseId(newExpense.id);
+            setTimeout(() => setNewExpenseId(null), 3000);
+
+            success('지출이 추가되었습니다!');
+            setShowManualExpenseModal(false);
+        } catch (err) {
+            console.error('Manual expense add error:', err);
+            showError(err instanceof Error ? err.message : '지출 추가에 실패했습니다.');
         }
     }, [dateRange, addExpense, success, showError]);
 
@@ -313,6 +384,7 @@ function App() {
                     isAnalyzing={isAnalyzing}
                     onFileSelected={handleReceiptUpload}
                     onCancelAnalysis={() => setIsAnalyzing(false)}
+                    onManualEntry={() => setShowManualExpenseModal(true)}
                     disabled={!supabaseInitialized}
                 />
 
@@ -387,6 +459,13 @@ function App() {
                 expense={editingExpense}
                 onSave={handleEditSave}
                 onClose={() => setEditingExpense(null)}
+            />
+
+            {/* Manual Expense Modal */}
+            <ManualExpenseModal
+                isOpen={showManualExpenseModal}
+                onSave={handleManualExpenseAdd}
+                onClose={() => setShowManualExpenseModal(false)}
             />
 
             {/* Receipt Image Modal */}
