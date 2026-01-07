@@ -16,7 +16,7 @@ interface SettingsProps {
 
 const DEFAULT_PIN = '1111';
 
-type PasswordAction = 'view' | 'edit' | 'change' | 'delete';
+type PasswordAction = 'view' | 'edit' | 'change' | 'delete' | 'reset';
 
 export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPin, onApiKeyPinChange, geminiApiKey, onGeminiApiKeyChange }: SettingsProps) {
     const [showConfirm, setShowConfirm] = useState(false);
@@ -133,6 +133,8 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                 setShowChangePasswordModal(true);
             } else if (passwordAction === 'delete') {
                 performApiKeyDelete();
+            } else if (passwordAction === 'reset') {
+                setShowConfirm(true);
             }
         } else {
             setPasswordError('비밀번호가 일치하지 않습니다.');
@@ -467,7 +469,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
 
                     <div className="p-4">
                         <button
-                            onClick={() => setShowConfirm(true)}
+                            onClick={() => requestPasswordVerification('reset')}
                             className="
                 w-full flex items-center justify-between
                 px-4 py-4 rounded-xl
@@ -582,7 +584,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                         </h2>
 
                         <p className="text-body text-text-secondary text-center mb-4">
-                            API 키 {passwordAction === 'view' ? '보기' : passwordAction === 'edit' ? '수정' : passwordAction === 'delete' ? '삭제' : '비밀번호 변경'}을(를) 위해<br />4자리 비밀번호를 입력하세요.
+                            {passwordAction === 'reset' ? '데이터 초기화' : `API 키 ${passwordAction === 'view' ? '보기' : passwordAction === 'edit' ? '수정' : passwordAction === 'delete' ? '삭제' : '비밀번호 변경'}`}을(를) 위해<br />4자리 비밀번호를 입력하세요.
                         </p>
 
                         <input
