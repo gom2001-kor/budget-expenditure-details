@@ -8,6 +8,8 @@ import { ReceiptUploader } from './components/ReceiptUploader';
 import { ExpenseList } from './components/ExpenseList';
 import { ExpenseEditModal } from './components/ExpenseEditModal';
 import { ManualExpenseModal } from './components/ManualExpenseModal';
+import { SearchBar } from './components/SearchBar';
+import { AdvancedSearchModal, emptyFilters, type AdvancedFilters } from './components/AdvancedSearchModal';
 import { AlertModal } from './components/AlertModal';
 import { Toast } from './components/Toast';
 import { Settings } from './components/Settings';
@@ -63,6 +65,11 @@ function App() {
     // Manual expense modal state
     const [showManualExpenseModal, setShowManualExpenseModal] = useState(false);
 
+    // Search state
+    const [basicSearch, setBasicSearch] = useState('');
+    const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(emptyFilters);
+    const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+
     // Toast
     const { toasts, success, error: showError, removeToast } = useToast();
 
@@ -114,11 +121,62 @@ function App() {
         totalSpent,
     } = useExpenses(supabaseInitialized);
 
-    // Filter expenses by date range and sort by date/time descending
+    // Filter expenses by date range, search, and sort by date/time descending
     const filteredExpenses = expenses
         .filter((expense) => {
-            if (!dateRange.startDate || !dateRange.endDate) return true;
-            return isDateInRange(expense.date, dateRange.startDate, dateRange.endDate);
+            // Date range filter (from header)
+            if (dateRange.startDate && dateRange.endDate) {
+                if (!isDateInRange(expense.date, dateRange.startDate, dateRange.endDate)) {
+                    return false;
+                }
+            }
+
+            // Basic search filter (store_name, address, reason)
+            if (basicSearch.trim()) {
+                const searchLower = basicSearch.toLowerCase();
+                const matchesStore = expense.store_name.toLowerCase().includes(searchLower);
+                const matchesAddress = expense.address?.toLowerCase().includes(searchLower) || false;
+                const matchesReason = expense.reason?.toLowerCase().includes(searchLower) || false;
+                if (!matchesStore && !matchesAddress && !matchesReason) {
+                    return false;
+                }
+            }
+
+            // Advanced filters
+            // Date range from advanced search
+            if (advancedFilters.dateFrom && expense.date < advancedFilters.dateFrom) {
+                return false;
+            }
+            if (advancedFilters.dateTo && expense.date > advancedFilters.dateTo) {
+                return false;
+            }
+
+            // Category filter
+            if (advancedFilters.category && expense.category !== advancedFilters.category) {
+                return false;
+            }
+
+            // Amount range filter
+            if (advancedFilters.minAmount) {
+                const minAmt = parseInt(advancedFilters.minAmount.replace(/,/g, ''), 10);
+                if (expense.amount < minAmt) return false;
+            }
+            if (advancedFilters.maxAmount) {
+                const maxAmt = parseInt(advancedFilters.maxAmount.replace(/,/g, ''), 10);
+                if (expense.amount > maxAmt) return false;
+            }
+
+            // Store name filter (from advanced)
+            if (advancedFilters.storeName && !expense.store_name.toLowerCase().includes(advancedFilters.storeName.toLowerCase())) {
+                return false;
+            }
+
+            // Reason filter (from advanced)
+            if (advancedFilters.reason && !(expense.reason?.toLowerCase().includes(advancedFilters.reason.toLowerCase()))) {
+                return false;
+            }
+
+            return true;
         })
         .sort((a, b) => {
             // Sort by date descending
@@ -129,6 +187,9 @@ function App() {
             const timeB = b.time || '00:00';
             return timeB.localeCompare(timeA);
         });
+
+    // Check if any advanced filter is active
+    const hasActiveAdvancedFilters = Object.values(advancedFilters).some(v => v !== '');
 
     // Handle date range change with Supabase sync
     const handleDateRangeChange = async (start: Date | null, end: Date | null) => {
@@ -388,6 +449,14 @@ function App() {
                     disabled={!supabaseInitialized}
                 />
 
+                {/* Search Bar */}
+                <SearchBar
+                    value={basicSearch}
+                    onChange={setBasicSearch}
+                    onAdvancedSearch={() => setShowAdvancedSearch(true)}
+                    hasActiveFilters={hasActiveAdvancedFilters}
+                />
+
                 {/* Expense List */}
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-3">
@@ -466,6 +535,15 @@ function App() {
                 isOpen={showManualExpenseModal}
                 onSave={handleManualExpenseAdd}
                 onClose={() => setShowManualExpenseModal(false)}
+            />
+
+            {/* Advanced Search Modal */}
+            <AdvancedSearchModal
+                isOpen={showAdvancedSearch}
+                filters={advancedFilters}
+                onApply={setAdvancedFilters}
+                onReset={() => setAdvancedFilters(emptyFilters)}
+                onClose={() => setShowAdvancedSearch(false)}
             />
 
             {/* Receipt Image Modal */}
