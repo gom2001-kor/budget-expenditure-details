@@ -120,13 +120,23 @@ export async function updateUserSettings(settings: Partial<UserSettings>, userId
         return { success: false, error: 'Supabase가 초기화되지 않았습니다.' };
     }
 
-    const settingsToSave = {
+    const settingsToSave: Record<string, unknown> = {
         user_id: userId,
         budget: settings.budget ?? 0,
         start_date: settings.start_date || null,
         end_date: settings.end_date || null,
         updated_at: new Date().toISOString()
     };
+
+    // api_key_pin이 있으면 추가
+    if (settings.api_key_pin !== undefined) {
+        settingsToSave.api_key_pin = settings.api_key_pin;
+    }
+
+    // gemini_api_key가 있으면 추가
+    if (settings.gemini_api_key !== undefined) {
+        settingsToSave.gemini_api_key = settings.gemini_api_key;
+    }
 
     console.log('Saving user settings:', settingsToSave);
 

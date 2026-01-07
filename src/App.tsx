@@ -41,6 +41,8 @@ function App() {
 
     // Settings state (from Supabase)
     const [budget, setBudget] = useState(0);
+    const [apiKeyPin, setApiKeyPin] = useState('1111'); // 기본값
+    const [geminiApiKey, setGeminiApiKey] = useState(''); // Gemini API 키
     const [dateRange, setDateRange] = useState<DateRange>({
         startDate: null,
         endDate: null,
@@ -94,6 +96,8 @@ function App() {
                 console.log('Loaded settings from Supabase:', settings);
                 if (settings) {
                     setBudget(settings.budget || 0);
+                    setApiKeyPin(settings.api_key_pin || '1111');
+                    setGeminiApiKey(settings.gemini_api_key || '');
                     setDateRange({
                         // 타임존 보정된 파싱 사용
                         startDate: settings.start_date ? parseLocalDate(settings.start_date) : null,
@@ -235,7 +239,7 @@ function App() {
 
         try {
             // 1. Analyze receipt with Gemini
-            const analyzed = await analyzeReceipt(file);
+            const analyzed = await analyzeReceipt(file, geminiApiKey);
 
             // 2. Check date range validation
             if (!isDateInRange(analyzed.date, dateRange.startDate, dateRange.endDate)) {
@@ -415,6 +419,40 @@ function App() {
         }
     };
 
+    // Handle API Key PIN change
+    const handleApiKeyPinChange = async (newPin: string) => {
+        setApiKeyPin(newPin);
+        try {
+            await updateUserSettings({
+                budget,
+                start_date: dateRange.startDate ? toISODateString(dateRange.startDate) : null,
+                end_date: dateRange.endDate ? toISODateString(dateRange.endDate) : null,
+                api_key_pin: newPin,
+            });
+            console.log('API Key PIN saved to Supabase:', newPin);
+        } catch (err) {
+            console.error('Error saving API Key PIN:', err);
+            showError('비밀번호 저장에 실패했습니다.');
+        }
+    };
+
+    // Handle Gemini API Key change
+    const handleGeminiApiKeyChange = async (newKey: string) => {
+        setGeminiApiKey(newKey);
+        try {
+            await updateUserSettings({
+                budget,
+                start_date: dateRange.startDate ? toISODateString(dateRange.startDate) : null,
+                end_date: dateRange.endDate ? toISODateString(dateRange.endDate) : null,
+                gemini_api_key: newKey,
+            });
+            console.log('Gemini API Key saved to Supabase');
+        } catch (err) {
+            console.error('Error saving Gemini API Key:', err);
+            showError('API 키 저장에 실패했습니다.');
+        }
+    };
+
     // Settings view
     if (showSettings) {
         return (
@@ -423,6 +461,10 @@ function App() {
                 onResetData={handleResetData}
                 budget={budget}
                 onBudgetChange={handleBudgetChange}
+                apiKeyPin={apiKeyPin}
+                onApiKeyPinChange={handleApiKeyPinChange}
+                geminiApiKey={geminiApiKey}
+                onGeminiApiKeyChange={handleGeminiApiKeyChange}
             />
         );
     }

@@ -19,6 +19,8 @@ export interface UserSettings {
     budget: number;
     start_date: string | null; // YYYY-MM-DD
     end_date: string | null; // YYYY-MM-DD
+    api_key_pin?: string; // 4자리 숫자 비밀번호
+    gemini_api_key?: string; // Gemini API 키
     created_at?: string;
     updated_at?: string;
 }

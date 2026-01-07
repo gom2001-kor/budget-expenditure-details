@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2, Wallet } from 'lucide-react';
+import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2, Wallet, Lock, KeyRound } from 'lucide-react';
 import { testConnectionDetailed } from '../services/supabase';
 import { formatCurrencyInput, extractNumber } from '../utils/formatUtils';
 
@@ -8,17 +8,36 @@ interface SettingsProps {
     onResetData: () => void;
     budget: number;
     onBudgetChange: (budget: number) => void;
+    apiKeyPin: string;
+    onApiKeyPinChange: (pin: string) => void;
+    geminiApiKey: string;
+    onGeminiApiKeyChange: (key: string) => void;
 }
 
-const GEMINI_API_KEY_STORAGE_KEY = 'gemini-api-key';
+const DEFAULT_PIN = '1111';
 
-export function Settings({ onBack, onResetData, budget, onBudgetChange }: SettingsProps) {
+type PasswordAction = 'view' | 'edit' | 'change';
+
+export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPin, onApiKeyPinChange, geminiApiKey, onGeminiApiKeyChange }: SettingsProps) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [budgetInput, setBudgetInput] = useState(budget > 0 ? budget.toLocaleString('ko-KR') : '');
     const [isBudgetSaved, setIsBudgetSaved] = useState(false);
+    const [isApiKeyEditable, setIsApiKeyEditable] = useState(false);
+
+    // 비밀번호 관련 state
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordAction, setPasswordAction] = useState<PasswordAction>('view');
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [changePasswordError, setChangePasswordError] = useState('');
+    const [isPasswordChanged, setIsPasswordChanged] = useState(false);
 
     // DB 테스트 관련 state
     const [dbTestLoading, setDbTestLoading] = useState(false);
@@ -29,24 +48,21 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange }: Settin
         setBudgetInput(budget > 0 ? budget.toLocaleString('ko-KR') : '');
     }, [budget]);
 
-    // Load saved API key on mount
+    // geminiApiKey props 동기화
     useEffect(() => {
-        const savedKey = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
-        if (savedKey) {
-            setApiKey(savedKey);
-        }
-    }, []);
+        setApiKey(geminiApiKey || '');
+    }, [geminiApiKey]);
 
     const handleSaveApiKey = () => {
         if (apiKey.trim()) {
-            localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, apiKey.trim());
+            onGeminiApiKeyChange(apiKey.trim());
             setIsSaved(true);
             setTimeout(() => setIsSaved(false), 2000);
         }
     };
 
     const handleClearApiKey = () => {
-        localStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+        onGeminiApiKeyChange('');
         setApiKey('');
     };
 
@@ -78,6 +94,94 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange }: Settin
         if (!apiKey) return '';
         if (apiKey.length <= 8) return '••••••••';
         return apiKey.slice(0, 4) + '••••••••' + apiKey.slice(-4);
+    };
+
+    // 비밀번호 가져오기 (props에서, 없으면 기본값)
+    const getStoredPin = () => {
+        return apiKeyPin || DEFAULT_PIN;
+    };
+
+    // 비밀번호 확인 요청
+    const requestPasswordVerification = (action: PasswordAction) => {
+        setPasswordAction(action);
+        setPasswordInput('');
+        setPasswordError('');
+        setShowPasswordModal(true);
+    };
+
+    // 비밀번호 확인 처리
+    const handlePasswordSubmit = () => {
+        const storedPin = getStoredPin();
+        if (passwordInput === storedPin) {
+            setShowPasswordModal(false);
+            setPasswordInput('');
+            setPasswordError('');
+
+            if (passwordAction === 'view') {
+                setShowApiKey(true);
+            } else if (passwordAction === 'edit') {
+                setIsApiKeyEditable(true);
+                setShowApiKey(true);
+            } else if (passwordAction === 'change') {
+                setShowChangePasswordModal(true);
+            }
+        } else {
+            setPasswordError('비밀번호가 일치하지 않습니다.');
+        }
+    };
+
+    // 비밀번호 변경 처리
+    const handleChangePassword = () => {
+        setChangePasswordError('');
+
+        // 현재 비밀번호 확인
+        if (currentPassword !== getStoredPin()) {
+            setChangePasswordError('현재 비밀번호가 일치하지 않습니다.');
+            return;
+        }
+
+        // 새 비밀번호 유효성 검사
+        if (newPassword.length !== 4 || !/^\d{4}$/.test(newPassword)) {
+            setChangePasswordError('비밀번호는 4자리 숫자여야 합니다.');
+            return;
+        }
+
+        // 확인 비밀번호 일치 확인
+        if (newPassword !== confirmPassword) {
+            setChangePasswordError('새 비밀번호가 일치하지 않습니다.');
+            return;
+        }
+
+        // 비밀번호 저장 (Supabase로)
+        onApiKeyPinChange(newPassword);
+        setIsPasswordChanged(true);
+        setTimeout(() => {
+            setIsPasswordChanged(false);
+            setShowChangePasswordModal(false);
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        }, 1500);
+    };
+
+    // API 키 보기 버튼 클릭 핸들러
+    const handleEyeClick = () => {
+        if (showApiKey) {
+            setShowApiKey(false);
+            setIsApiKeyEditable(false);
+        } else {
+            requestPasswordVerification('view');
+        }
+    };
+
+    // API 키 입력 필드 포커스 핸들러
+    const handleApiKeyFocus = () => {
+        if (!isApiKeyEditable && apiKey) {
+            requestPasswordVerification('edit');
+        } else if (!apiKey) {
+            setIsApiKeyEditable(true);
+            setShowApiKey(true);
+        }
     };
 
     return (
@@ -121,24 +225,26 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange }: Settin
                                         type={showApiKey ? 'text' : 'password'}
                                         value={showApiKey ? apiKey : (apiKey ? getMaskedKey() : '')}
                                         onChange={(e) => {
-                                            if (showApiKey) {
+                                            if (isApiKeyEditable) {
                                                 setApiKey(e.target.value);
                                             }
                                         }}
-                                        onFocus={() => setShowApiKey(true)}
+                                        onFocus={handleApiKeyFocus}
+                                        readOnly={!isApiKeyEditable && !!apiKey}
                                         placeholder="API 키를 입력하세요"
-                                        className="
+                                        className={`
                                             w-full h-12 px-4 pr-12
                                             border-2 border-border rounded-xl
                                             text-body text-text-primary
                                             placeholder:text-text-secondary/50
                                             focus:border-primary focus:outline-none
                                             transition-colors
-                                        "
+                                            ${!isApiKeyEditable && apiKey ? 'cursor-pointer bg-gray-50' : ''}
+                                        `}
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        onClick={handleEyeClick}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary transition-colors"
                                         aria-label={showApiKey ? 'API 키 숨기기' : 'API 키 보기'}
                                     >
@@ -153,7 +259,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange }: Settin
                                 <div className="flex gap-2 mt-3">
                                     <button
                                         onClick={handleSaveApiKey}
-                                        disabled={!apiKey.trim()}
+                                        disabled={!apiKey.trim() || !isApiKeyEditable}
                                         className={`
                                             flex-1 h-10 rounded-xl font-semibold text-sm
                                             flex items-center justify-center gap-2
@@ -182,6 +288,15 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange }: Settin
                                         </button>
                                     )}
                                 </div>
+
+                                {/* 비밀번호 변경 버튼 */}
+                                <button
+                                    onClick={() => requestPasswordVerification('change')}
+                                    className="w-full mt-3 h-10 rounded-xl font-semibold text-sm border-2 border-primary/30 text-primary hover:bg-primary/5 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <Lock className="w-4 h-4" />
+                                    API 키 비밀번호 변경
+                                </button>
 
                                 <a
                                     href="https://aistudio.google.com/"
@@ -430,9 +545,192 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange }: Settin
                     </div>
                 </div>
             )}
+
+            {/* Password Verification Modal */}
+            {showPasswordModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop animate-fade-in"
+                    onClick={() => setShowPasswordModal(false)}
+                >
+                    <div
+                        className="w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setShowPasswordModal(false)}
+                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                            aria-label="닫기"
+                        >
+                            <X className="w-5 h-5 text-text-secondary" />
+                        </button>
+
+                        <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                            <Lock className="w-8 h-8 text-primary" />
+                        </div>
+
+                        <h2 className="text-subtitle text-center mb-2">
+                            비밀번호 확인
+                        </h2>
+
+                        <p className="text-body text-text-secondary text-center mb-4">
+                            API 키 {passwordAction === 'view' ? '보기' : passwordAction === 'edit' ? '수정' : '비밀번호 변경'}을(를) 위해<br />4자리 비밀번호를 입력하세요.
+                        </p>
+
+                        <input
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={4}
+                            value={passwordInput}
+                            onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                setPasswordInput(val);
+                                setPasswordError('');
+                            }}
+                            placeholder="••••"
+                            className="w-full h-14 text-center text-2xl tracking-[0.5em] font-bold border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                            autoFocus
+                        />
+
+                        {passwordError && (
+                            <p className="text-error text-sm text-center mt-2">{passwordError}</p>
+                        )}
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setShowPasswordModal(false)}
+                                className="flex-1 h-12 border-2 border-gray-200 text-text-secondary font-semibold rounded-xl hover:bg-gray-50 active:scale-95 transition-all"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={handlePasswordSubmit}
+                                disabled={passwordInput.length !== 4}
+                                className="flex-1 h-12 bg-primary text-white font-semibold rounded-xl hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Password Modal */}
+            {showChangePasswordModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop animate-fade-in"
+                    onClick={() => setShowChangePasswordModal(false)}
+                >
+                    <div
+                        className="w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setShowChangePasswordModal(false)}
+                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                            aria-label="닫기"
+                        >
+                            <X className="w-5 h-5 text-text-secondary" />
+                        </button>
+
+                        <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                            <KeyRound className="w-8 h-8 text-primary" />
+                        </div>
+
+                        <h2 className="text-subtitle text-center mb-4">
+                            비밀번호 변경
+                        </h2>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-sm text-text-secondary mb-1 block">현재 비밀번호</label>
+                                <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    value={currentPassword}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                        setCurrentPassword(val);
+                                        setChangePasswordError('');
+                                    }}
+                                    placeholder="••••"
+                                    className="w-full h-12 text-center text-xl tracking-[0.5em] font-bold border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm text-text-secondary mb-1 block">새 비밀번호 (4자리 숫자)</label>
+                                <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    value={newPassword}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                        setNewPassword(val);
+                                        setChangePasswordError('');
+                                    }}
+                                    placeholder="••••"
+                                    className="w-full h-12 text-center text-xl tracking-[0.5em] font-bold border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm text-text-secondary mb-1 block">새 비밀번호 확인</label>
+                                <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    value={confirmPassword}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                        setConfirmPassword(val);
+                                        setChangePasswordError('');
+                                    }}
+                                    placeholder="••••"
+                                    className="w-full h-12 text-center text-xl tracking-[0.5em] font-bold border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                                />
+                            </div>
+                        </div>
+
+                        {changePasswordError && (
+                            <p className="text-error text-sm text-center mt-3">{changePasswordError}</p>
+                        )}
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowChangePasswordModal(false);
+                                    setCurrentPassword('');
+                                    setNewPassword('');
+                                    setConfirmPassword('');
+                                    setChangePasswordError('');
+                                }}
+                                className="flex-1 h-12 border-2 border-gray-200 text-text-secondary font-semibold rounded-xl hover:bg-gray-50 active:scale-95 transition-all"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={handleChangePassword}
+                                disabled={currentPassword.length !== 4 || newPassword.length !== 4 || confirmPassword.length !== 4}
+                                className={`flex-1 h-12 font-semibold rounded-xl active:scale-95 transition-all ${isPasswordChanged
+                                    ? 'bg-success text-white'
+                                    : 'bg-primary text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                                    }`}
+                            >
+                                {isPasswordChanged ? (
+                                    <>
+                                        <Check className="w-4 h-4 inline mr-1" />
+                                        변경됨
+                                    </>
+                                ) : (
+                                    '변경'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
-// Export the storage key for use in other files
-export { GEMINI_API_KEY_STORAGE_KEY };
