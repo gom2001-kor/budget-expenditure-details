@@ -27,7 +27,7 @@ export function ReceiptImageModal({
     };
 
     const handleZoomOut = () => {
-        setScale((prev) => Math.max(prev - 0.25, 0.5));
+        setScale((prev) => Math.max(prev - 0.25, 0.3));
     };
 
     const handleResetZoom = () => {
