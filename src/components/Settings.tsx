@@ -507,7 +507,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                     onClick={() => setShowConfirm(false)}
                 >
                     <div
-                        className="w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
+                        className="relative w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close */}
@@ -562,7 +562,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                     onClick={() => setShowPasswordModal(false)}
                 >
                     <div
-                        className="w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
+                        className="relative w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
@@ -630,7 +630,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                     onClick={() => setShowChangePasswordModal(false)}
                 >
                     <div
-                        className="w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
+                        className="relative w-full max-w-sm bg-white rounded-3xl shadow-modal p-6 animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
