@@ -86,12 +86,12 @@ export function Header({
                 </button>
 
                 {/* Budget Dashboard */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                     {/* Total Budget */}
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-sm">
-                        <p className="text-caption text-text-secondary mb-1">총 예산</p>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm">
+                        <p className="text-xs text-text-secondary mb-1">총 예산</p>
                         <div className="relative">
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-lg font-bold text-text-primary">₩</span>
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-base font-bold text-text-primary">₩</span>
                             <input
                                 type="text"
                                 inputMode="numeric"
@@ -99,19 +99,27 @@ export function Header({
                                 onChange={(e) => handleBudgetChange(e.target.value)}
                                 placeholder="0"
                                 className="
-                  w-full pl-5 text-2xl font-bold text-text-primary
-                  bg-transparent border-none outline-none
-                  tabular-nums
-                "
+                                    w-full pl-4 text-lg font-bold text-text-primary
+                                    bg-transparent border-none outline-none
+                                    tabular-nums
+                                "
                                 aria-label="총 예산 입력"
                             />
                         </div>
                     </div>
 
+                    {/* Total Spent */}
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm border-l-4 border-primary">
+                        <p className="text-xs text-text-secondary mb-1">총 지출</p>
+                        <p className="text-lg font-bold text-primary tabular-nums">
+                            {formatCurrency(spent)}
+                        </p>
+                    </div>
+
                     {/* Remaining */}
-                    <div className={`bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-sm border-l-4 min-w-0 overflow-hidden ${remaining < 0 ? 'border-error' : spentPercentage >= 80 ? 'border-warning' : 'border-success'}`}>
-                        <p className="text-sm font-semibold text-text-primary mb-1">잔액</p>
-                        <p className={`text-base sm:text-xl font-bold tabular-nums whitespace-nowrap overflow-hidden text-ellipsis ${getRemainingColor()}`}>
+                    <div className={`bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm border-l-4 min-w-0 overflow-hidden ${remaining < 0 ? 'border-error' : spentPercentage >= 80 ? 'border-warning' : 'border-success'}`}>
+                        <p className="text-xs text-text-secondary mb-1">잔액</p>
+                        <p className={`text-lg font-bold tabular-nums whitespace-nowrap overflow-hidden text-ellipsis ${getRemainingColor()}`}>
                             {formatCurrency(remaining)}
                         </p>
                     </div>
