@@ -6,7 +6,7 @@ import { formatCurrencyInput, extractNumber } from '../utils/formatUtils';
 const INCOME_CATEGORIES = ['조합비', '기타(직접 입력)'];
 
 // 수입처 옵션
-const INCOME_SOURCES = ['전년도 잔액 이월', '대전지방국토관리청', '기타(직접 입력)'];
+const INCOME_SOURCES = ['대전지방국토관리청', '전년도 잔액 이월', '기타(직접 입력)'];
 
 // 형식 옵션
 const INCOME_METHODS = ['계좌이체', '현금'];
