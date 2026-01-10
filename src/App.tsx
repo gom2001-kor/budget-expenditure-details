@@ -217,6 +217,9 @@ function App() {
     // Check if any advanced filter is active
     const hasActiveAdvancedFilters = Object.values(advancedFilters).some(v => v !== '');
 
+    // 수입 내역 날짜순 내림차순 정렬
+    const sortedIncomes = [...incomes].sort((a, b) => b.date.localeCompare(a.date));
+
     // Handle date range change with Supabase sync
     const handleDateRangeChange = async (start: Date | null, end: Date | null) => {
         setDateRange({ startDate: start, endDate: end });
@@ -691,7 +694,7 @@ function App() {
                             </div>
                         ) : (
                             <IncomeList
-                                incomes={incomes}
+                                incomes={sortedIncomes}
                                 onEdit={setEditingIncome}
                                 onDelete={handleIncomeDelete}
                                 newIncomeId={newIncomeId}
