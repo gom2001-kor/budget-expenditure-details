@@ -144,6 +144,7 @@ function App() {
         addIncome,
         updateIncome,
         deleteIncome,
+        clearAll: clearAllIncomes,
         totalIncome,
     } = useIncomes(supabaseInitialized);
 
@@ -412,7 +413,9 @@ function App() {
     // Handle data reset
     const handleResetData = async () => {
         try {
+            // 지출과 수입 모두 초기화
             await clearAll();
+            await clearAllIncomes();
             setBudget(0);
             setDateRange({ startDate: null, endDate: null });
 
@@ -427,7 +430,7 @@ function App() {
                 console.warn('Settings reset warning:', result.error);
             }
 
-            success('모든 데이터가 초기화되었습니다.');
+            success('모든 지출 및 수입 데이터가 초기화되었습니다.');
             setShowSettings(false);
         } catch (err) {
             showError('초기화에 실패했습니다.');

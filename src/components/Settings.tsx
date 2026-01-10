@@ -533,7 +533,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                                 <div className="text-left">
                                     <p className="text-body font-semibold text-error">모든 데이터 초기화</p>
                                     <p className="text-caption text-text-secondary">
-                                        모든 지출 내역이 삭제됩니다
+                                        모든 지출 및 수입 내역이 삭제됩니다
                                     </p>
                                 </div>
                             </div>
@@ -581,7 +581,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
 
                         {/* Message */}
                         <p className="text-body text-text-secondary text-center mb-6">
-                            모든 지출 내역이 삭제됩니다.
+                            모든 지출 및 수입 내역이 삭제됩니다.
                             <br />
                             이 작업은 되돌릴 수 없습니다.
                         </p>
