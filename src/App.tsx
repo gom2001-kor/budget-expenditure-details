@@ -17,6 +17,7 @@ import { ReceiptImageModal } from './components/ReceiptImageModal';
 import { IncomeInputModal } from './components/IncomeInputModal';
 import { IncomeEditModal } from './components/IncomeEditModal';
 import { IncomeList } from './components/IncomeList';
+import { PdfOrientationModal, type PdfOrientation } from './components/PdfOrientationModal';
 
 // Services
 import { initializeSupabase, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, getUserSettings, updateUserSettings } from './services/supabase';
@@ -86,6 +87,10 @@ function App() {
 
     // Toast
     const { toasts, success, error: showError, removeToast } = useToast();
+
+    // PDF orientation modal state
+    const [showPdfOrientationModal, setShowPdfOrientationModal] = useState(false);
+    const [pdfType, setPdfType] = useState<'expense' | 'income'>('expense');
 
     // Initialize Supabase
     useEffect(() => {
@@ -438,12 +443,20 @@ function App() {
     };
 
     // Handle PDF export
-    const handleExportPdf = async () => {
+    const handleExportPdf = async (orientation: PdfOrientation) => {
+        const pdfOrientation = orientation === 'portrait' ? 'p' : 'l';
         try {
-            await exportToPdf(filteredExpenses, dateRange, budget);
-            success('PDF가 다운로드되었습니다.');
+            if (pdfType === 'expense') {
+                await exportToPdf(filteredExpenses, dateRange, budget, pdfOrientation);
+                success('PDF가 다운로드되었습니다.');
+            } else {
+                await exportIncomeToPdf(incomes, dateRange, budget, pdfOrientation);
+                success('수입 내역 PDF가 생성되었습니다.');
+            }
         } catch (err) {
             showError('PDF 생성에 실패했습니다.');
+        } finally {
+            setShowPdfOrientationModal(false);
         }
     };
 
@@ -710,7 +723,10 @@ function App() {
             {/* Floating PDF Export Button */}
             {activeTab === 'expense' && filteredExpenses.length > 0 && (
                 <button
-                    onClick={handleExportPdf}
+                    onClick={() => {
+                        setPdfType('expense');
+                        setShowPdfOrientationModal(true);
+                    }}
                     className="
             fixed bottom-6 right-6 md:bottom-8 md:right-8
             flex items-center gap-2
@@ -730,13 +746,9 @@ function App() {
             {/* Floating Income PDF Export Button */}
             {activeTab === 'income' && incomes.length > 0 && (
                 <button
-                    onClick={async () => {
-                        try {
-                            await exportIncomeToPdf(incomes, dateRange, budget);
-                            success('수입 내역 PDF가 생성되었습니다.');
-                        } catch (err) {
-                            showError('PDF 생성에 실패했습니다.');
-                        }
+                    onClick={() => {
+                        setPdfType('income');
+                        setShowPdfOrientationModal(true);
                     }}
                     className="
             fixed bottom-6 right-6 md:bottom-8 md:right-8
@@ -791,6 +803,14 @@ function App() {
                 income={editingIncome}
                 onSave={handleIncomeEditSave}
                 onClose={() => setEditingIncome(null)}
+            />
+
+            {/* PDF Orientation Modal */}
+            <PdfOrientationModal
+                isOpen={showPdfOrientationModal}
+                onClose={() => setShowPdfOrientationModal(false)}
+                onSelect={handleExportPdf}
+                title={pdfType === 'expense' ? '지출 PDF 방향 선택' : '수입 PDF 방향 선택'}
             />
 
             {/* Advanced Search Modal */}

@@ -87,7 +87,8 @@ async function addHtmlToPdf(
 export async function exportToPdf(
   expenses: Expense[],
   dateRange: DateRange,
-  totalBudget: number
+  totalBudget: number,
+  orientation: 'p' | 'l' = 'p'
 ): Promise<void> {
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
   const remaining = totalBudget - totalSpent;
@@ -170,11 +171,12 @@ export async function exportToPdf(
   `;
 
   // PDF 생성 시작
+  const containerWidth = orientation === 'l' ? '1123px' : '794px';
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.width = '794px';
+  container.style.width = containerWidth;
   container.style.backgroundColor = 'white';
   container.style.padding = '40px';
   container.style.fontFamily = 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif';
@@ -190,7 +192,7 @@ export async function exportToPdf(
     });
 
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF(orientation, 'mm', 'a4');
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -333,7 +335,8 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
 export async function exportIncomeToPdf(
   incomes: Income[],
   dateRange: DateRange,
-  totalBudget: number
+  totalBudget: number,
+  orientation: 'p' | 'l' = 'p'
 ): Promise<void> {
   const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
 
@@ -423,11 +426,12 @@ export async function exportIncomeToPdf(
   `;
 
   // PDF 생성
+  const containerWidth = orientation === 'l' ? '1123px' : '794px';
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.width = '794px';
+  container.style.width = containerWidth;
   container.style.backgroundColor = 'white';
   container.style.padding = '40px';
   container.style.fontFamily = 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif';
@@ -443,7 +447,7 @@ export async function exportIncomeToPdf(
     });
 
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF(orientation, 'mm', 'a4');
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
