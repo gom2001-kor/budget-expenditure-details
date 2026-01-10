@@ -513,8 +513,23 @@ function App() {
     // Handle income edit
     const handleIncomeEditSave = async (id: string, updates: Partial<Income>) => {
         try {
+            // 기존 수입 찾기
+            const existingIncome = incomes.find(inc => inc.id === id);
+
+            // 금액이 변경되었으면 예산 조정
+            if (existingIncome && updates.amount !== undefined && updates.amount !== existingIncome.amount) {
+                const amountDifference = updates.amount - existingIncome.amount;
+                const newBudget = budget + amountDifference;
+                await handleBudgetChange(Math.max(0, newBudget));
+            }
+
             await updateIncome(id, updates);
-            success('수입이 수정되었습니다.');
+
+            const amountChangeMsg = existingIncome && updates.amount !== undefined && updates.amount !== existingIncome.amount
+                ? ` (예산 ${updates.amount - existingIncome.amount > 0 ? '+' : ''}${(updates.amount - existingIncome.amount).toLocaleString('ko-KR')}원)`
+                : '';
+
+            success(`수입이 수정되었습니다.${amountChangeMsg}`);
             setEditingIncome(null);
         } catch (err) {
             showError('수입 수정에 실패했습니다.');
