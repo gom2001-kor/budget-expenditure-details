@@ -563,7 +563,13 @@ function App() {
                     isAnalyzing={isAnalyzing}
                     onFileSelected={handleReceiptUpload}
                     onCancelAnalysis={() => setIsAnalyzing(false)}
-                    onManualEntry={() => setShowManualExpenseModal(true)}
+                    onManualEntry={() => {
+                        if (activeTab === 'income') {
+                            setShowIncomeInputModal(true);
+                        } else {
+                            setShowManualExpenseModal(true);
+                        }
+                    }}
                     disabled={!supabaseInitialized}
                 />
 
