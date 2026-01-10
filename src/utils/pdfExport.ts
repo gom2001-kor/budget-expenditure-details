@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import type { Expense, DateRange } from '../types';
+import type { Expense, Income, DateRange } from '../types';
 import { formatCurrency, getCategoryColor } from './formatUtils';
 import { formatDate, formatTime } from './dateUtils';
 
@@ -324,5 +324,139 @@ async function addReceiptPages(pdf: jsPDF, expenses: Expense[]): Promise<void> {
     }
 
     positionInPage++;
+  }
+}
+
+/**
+ * 수입 내역을 PDF로 내보내기
+ */
+export async function exportIncomeToPdf(
+  incomes: Income[],
+  dateRange: DateRange,
+  totalBudget: number
+): Promise<void> {
+  const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+
+  const startDateStr = dateRange.startDate
+    ? format(dateRange.startDate, 'yyyy.MM.dd', { locale: ko })
+    : '';
+  const endDateStr = dateRange.endDate
+    ? format(dateRange.endDate, 'yyyy.MM.dd', { locale: ko })
+    : '';
+
+  // 수입 분류별 색상 함수
+  const getIncomeCategoryColor = (category: string): string => {
+    switch (category) {
+      case '조합비':
+        return '#10b981';
+      default:
+        return '#6366f1';
+    }
+  };
+
+  // 메인 보고서 HTML
+  const mainReportHtml = `
+    <div style="margin-bottom: 30px;">
+      <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">
+        수입 내역 보고서
+      </h1>
+      <p style="font-size: 14px; color: #64748b; margin: 0;">
+        ${startDateStr} ~ ${endDateStr}
+      </p>
+    </div>
+    
+    <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+      <div style="flex: 1; background: #f8fafc; border-radius: 12px; padding: 20px;">
+        <p style="font-size: 13px; color: #64748b; margin: 0 0 4px 0;">총 예산</p>
+        <p style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0;">
+          ${formatCurrency(totalBudget)}
+        </p>
+      </div>
+      <div style="flex: 1; background: #ecfdf5; border-radius: 12px; padding: 20px;">
+        <p style="font-size: 13px; color: #64748b; margin: 0 0 4px 0;">총 수입</p>
+        <p style="font-size: 24px; font-weight: 700; color: #10b981; margin: 0;">
+          +${formatCurrency(totalIncome)}
+        </p>
+      </div>
+      <div style="flex: 1; background: #f8fafc; border-radius: 12px; padding: 20px;">
+        <p style="font-size: 13px; color: #64748b; margin: 0 0 4px 0;">수입 건수</p>
+        <p style="font-size: 24px; font-weight: 700; color: #6366f1; margin: 0;">
+          ${incomes.length}건
+        </p>
+      </div>
+    </div>
+    
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+      <thead>
+        <tr style="background: #f8fafc;">
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">날짜</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">분류</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">수입처</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">형식</th>
+          <th style="padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0;">비고</th>
+          <th style="padding: 8px 6px; text-align: right; border-bottom: 1px solid #e2e8f0;">금액</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${incomes.map((income, index) => `
+          <tr style="background: ${index % 2 === 0 ? 'white' : '#fafafa'};">
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatDate(income.date)}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">
+              <span style="display: inline; padding: 2px 6px; background: ${getIncomeCategoryColor(income.category)}20; color: ${getIncomeCategoryColor(income.category)}; border-radius: 4px; font-size: 10px;">
+                ${income.category}
+              </span>
+            </td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${income.source || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${income.method || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${income.note || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; white-space: nowrap; color: #10b981;">
+              +${formatCurrency(income.amount)}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    
+    <div style="margin-top: 30px; text-align: center; color: #94a3b8; font-size: 12px;">
+      생성일: ${format(new Date(), 'yyyy년 M월 d일 HH:mm', { locale: ko })}
+    </div>
+  `;
+
+  // PDF 생성
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '794px';
+  container.style.backgroundColor = 'white';
+  container.style.padding = '40px';
+  container.style.fontFamily = 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif';
+  container.innerHTML = mainReportHtml;
+
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+    const imgX = (pdfWidth - imgWidth * ratio) / 2;
+
+    pdf.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
+
+    const fileName = `수입내역_${startDateStr}_${endDateStr}.pdf`.replace(/\./g, '');
+    pdf.save(fileName);
+  } finally {
+    document.body.removeChild(container);
   }
 }

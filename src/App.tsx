@@ -30,7 +30,7 @@ import { useToast } from './hooks/useToast';
 
 // Utils
 import { isDateInRange, formatDateRangeKorean, toISODateString, parseLocalDate } from './utils/dateUtils';
-import { exportToPdf } from './utils/pdfExport';
+import { exportToPdf, exportIncomeToPdf } from './utils/pdfExport';
 
 // Types
 import type { Expense, Income, DateRange } from './types';
@@ -524,8 +524,16 @@ function App() {
     // Handle income delete
     const handleIncomeDelete = async (id: string) => {
         try {
+            // 삭제할 수입의 금액을 찾기
+            const incomeToDelete = incomes.find(inc => inc.id === id);
+            if (incomeToDelete) {
+                // 예산에서 차감
+                const newBudget = budget - incomeToDelete.amount;
+                await handleBudgetChange(Math.max(0, newBudget)); // 음수 방지
+            }
+
             await deleteIncome(id);
-            success('수입이 삭제되었습니다.');
+            success(`수입이 삭제되었습니다. (예산 -${incomeToDelete?.amount.toLocaleString('ko-KR') || 0}원)`);
         } catch (err) {
             showError('수입 삭제에 실패했습니다.');
         }
@@ -679,7 +687,7 @@ function App() {
             </main>
 
             {/* Floating PDF Export Button */}
-            {filteredExpenses.length > 0 && (
+            {activeTab === 'expense' && filteredExpenses.length > 0 && (
                 <button
                     onClick={handleExportPdf}
                     className="
@@ -695,6 +703,33 @@ function App() {
                 >
                     <Download className="w-5 h-5" />
                     <span className="hidden sm:inline">PDF로 저장</span>
+                </button>
+            )}
+
+            {/* Floating Income PDF Export Button */}
+            {activeTab === 'income' && incomes.length > 0 && (
+                <button
+                    onClick={async () => {
+                        try {
+                            await exportIncomeToPdf(incomes, dateRange, budget);
+                            success('수입 내역 PDF가 생성되었습니다.');
+                        } catch (err) {
+                            showError('PDF 생성에 실패했습니다.');
+                        }
+                    }}
+                    className="
+            fixed bottom-6 right-6 md:bottom-8 md:right-8
+            flex items-center gap-2
+            px-6 py-4
+            bg-gradient-to-r from-success to-green-600
+            text-white font-semibold
+            rounded-full shadow-lg hover:shadow-xl
+            active:scale-95 transition-all
+            z-30
+          "
+                >
+                    <Download className="w-5 h-5" />
+                    <span className="hidden sm:inline">수입 PDF 저장</span>
                 </button>
             )}
 
