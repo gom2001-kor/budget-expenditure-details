@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2, Wallet, Lock, KeyRound, TrendingUp } from 'lucide-react';
 import { testConnectionDetailed } from '../services/supabase';
 import { formatCurrencyInput, extractNumber } from '../utils/formatUtils';
+import { IncomeInputModal } from './IncomeInputModal';
 
 interface SettingsProps {
     onBack: () => void;
@@ -12,14 +13,21 @@ interface SettingsProps {
     onApiKeyPinChange: (pin: string) => void;
     geminiApiKey: string;
     onGeminiApiKeyChange: (key: string) => void;
-    onIncomeEntryClick: () => void;
+    onIncomeAdd: (data: {
+        date: string;
+        category: string;
+        amount: number;
+        source: string | null;
+        method: string | null;
+        note: string | null;
+    }) => void;
 }
 
 const DEFAULT_PIN = '1111';
 
 type PasswordAction = 'view' | 'edit' | 'change' | 'delete' | 'reset';
 
-export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPin, onApiKeyPinChange, geminiApiKey, onGeminiApiKeyChange, onIncomeEntryClick }: SettingsProps) {
+export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPin, onApiKeyPinChange, geminiApiKey, onGeminiApiKeyChange, onIncomeAdd }: SettingsProps) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
@@ -27,6 +35,9 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
     const [budgetInput, setBudgetInput] = useState(budget > 0 ? budget.toLocaleString('ko-KR') : '');
     const [isBudgetSaved, setIsBudgetSaved] = useState(false);
     const [isApiKeyEditable, setIsApiKeyEditable] = useState(false);
+
+    // 수입 입력 모달 state
+    const [showIncomeModal, setShowIncomeModal] = useState(false);
 
     // 비밀번호 관련 state
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -480,7 +491,7 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                                 </p>
 
                                 <button
-                                    onClick={onIncomeEntryClick}
+                                    onClick={() => setShowIncomeModal(true)}
                                     className="
                                         w-full h-10 rounded-xl font-semibold text-sm
                                         flex items-center justify-center gap-2
@@ -779,6 +790,16 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                     </div>
                 </div>
             )}
+
+            {/* Income Input Modal */}
+            <IncomeInputModal
+                isOpen={showIncomeModal}
+                onSave={(data) => {
+                    onIncomeAdd(data);
+                    setShowIncomeModal(false);
+                }}
+                onClose={() => setShowIncomeModal(false)}
+            />
         </div>
     );
 }

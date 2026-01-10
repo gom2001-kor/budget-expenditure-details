@@ -495,16 +495,20 @@ function App() {
                 user_id: 'default_user',
             });
 
+            // 수입 금액을 예산에 자동 합산
+            const newBudget = budget + data.amount;
+            await handleBudgetChange(newBudget);
+
             setNewIncomeId(newIncome.id);
             setTimeout(() => setNewIncomeId(null), 3000);
 
-            success('수입이 추가되었습니다!');
+            success(`수입이 추가되었습니다! (예산 +${data.amount.toLocaleString('ko-KR')}원)`);
             setShowIncomeInputModal(false);
         } catch (err) {
             console.error('Income add error:', err);
             showError(err instanceof Error ? err.message : '수입 추가에 실패했습니다.');
         }
-    }, [addIncome, success, showError]);
+    }, [addIncome, budget, handleBudgetChange, success, showError]);
 
     // Handle income edit
     const handleIncomeEditSave = async (id: string, updates: Partial<Income>) => {
@@ -539,7 +543,7 @@ function App() {
                 onApiKeyPinChange={handleApiKeyPinChange}
                 geminiApiKey={geminiApiKey}
                 onGeminiApiKeyChange={handleGeminiApiKeyChange}
-                onIncomeEntryClick={() => setShowIncomeInputModal(true)}
+                onIncomeAdd={handleIncomeAdd}
             />
         );
     }
