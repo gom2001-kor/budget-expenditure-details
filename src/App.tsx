@@ -14,6 +14,9 @@ import { AlertModal } from './components/AlertModal';
 import { Toast } from './components/Toast';
 import { Settings } from './components/Settings';
 import { ReceiptImageModal } from './components/ReceiptImageModal';
+import { IncomeInputModal } from './components/IncomeInputModal';
+import { IncomeEditModal } from './components/IncomeEditModal';
+import { IncomeList } from './components/IncomeList';
 
 // Services
 import { initializeSupabase, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, getUserSettings, updateUserSettings } from './services/supabase';
@@ -22,6 +25,7 @@ import { uploadImage } from './services/storage';
 
 // Hooks
 import { useExpenses } from './hooks/useExpenses';
+import { useIncomes } from './hooks/useIncomes';
 import { useToast } from './hooks/useToast';
 
 // Utils
@@ -29,7 +33,7 @@ import { isDateInRange, formatDateRangeKorean, toISODateString, parseLocalDate }
 import { exportToPdf } from './utils/pdfExport';
 
 // Types
-import type { Expense, DateRange } from './types';
+import type { Expense, Income, DateRange } from './types';
 
 function App() {
     // App state
@@ -71,6 +75,14 @@ function App() {
     const [basicSearch, setBasicSearch] = useState('');
     const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(emptyFilters);
     const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+
+    // Tab state for expense/income toggle
+    const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
+
+    // Income modal states
+    const [showIncomeInputModal, setShowIncomeInputModal] = useState(false);
+    const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+    const [newIncomeId, setNewIncomeId] = useState<string | null>(null);
 
     // Toast
     const { toasts, success, error: showError, removeToast } = useToast();
@@ -124,6 +136,16 @@ function App() {
         clearAll,
         totalSpent,
     } = useExpenses(supabaseInitialized);
+
+    // Incomes hook
+    const {
+        incomes,
+        loading: incomesLoading,
+        addIncome,
+        updateIncome,
+        deleteIncome,
+        totalIncome,
+    } = useIncomes(supabaseInitialized);
 
     // Filter expenses by date range, search, and sort by date/time descending
     const filteredExpenses = expenses
@@ -453,6 +475,58 @@ function App() {
         }
     };
 
+    // Handle income add from settings modal
+    const handleIncomeAdd = useCallback(async (data: {
+        date: string;
+        category: string;
+        amount: number;
+        source: string | null;
+        method: string | null;
+        note: string | null;
+    }) => {
+        try {
+            const newIncome = await addIncome({
+                date: data.date,
+                category: data.category,
+                amount: data.amount,
+                source: data.source,
+                method: data.method,
+                note: data.note,
+                user_id: 'default_user',
+            });
+
+            setNewIncomeId(newIncome.id);
+            setTimeout(() => setNewIncomeId(null), 3000);
+
+            success('수입이 추가되었습니다!');
+            setShowIncomeInputModal(false);
+        } catch (err) {
+            console.error('Income add error:', err);
+            showError(err instanceof Error ? err.message : '수입 추가에 실패했습니다.');
+        }
+    }, [addIncome, success, showError]);
+
+    // Handle income edit
+    const handleIncomeEditSave = async (id: string, updates: Partial<Income>) => {
+        try {
+            await updateIncome(id, updates);
+            success('수입이 수정되었습니다.');
+            setEditingIncome(null);
+        } catch (err) {
+            showError('수입 수정에 실패했습니다.');
+        }
+    };
+
+    // Handle income delete
+    const handleIncomeDelete = async (id: string) => {
+        try {
+            await deleteIncome(id);
+            success('수입이 삭제되었습니다.');
+        } catch (err) {
+            showError('수입 삭제에 실패했습니다.');
+        }
+    };
+
     // Settings view
     if (showSettings) {
         return (
@@ -465,6 +539,7 @@ function App() {
                 onApiKeyPinChange={handleApiKeyPinChange}
                 geminiApiKey={geminiApiKey}
                 onGeminiApiKeyChange={handleGeminiApiKeyChange}
+                onIncomeEntryClick={() => setShowIncomeInputModal(true)}
             />
         );
     }
@@ -500,38 +575,95 @@ function App() {
                     hasActiveFilters={hasActiveAdvancedFilters}
                 />
 
-                {/* Expense List */}
+                {/* Expense / Income List */}
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-subtitle text-text-primary">지출 내역</h2>
-                        {filteredExpenses.length > 0 && (
+                        {/* Tab Buttons */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setActiveTab('expense')}
+                                className={`
+                                    px-4 py-2 rounded-xl font-semibold text-sm transition-all
+                                    ${activeTab === 'expense'
+                                        ? 'bg-primary text-white'
+                                        : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                    }
+                                `}
+                            >
+                                지출 내역
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('income')}
+                                className={`
+                                    px-4 py-2 rounded-xl font-semibold text-sm transition-all
+                                    ${activeTab === 'income'
+                                        ? 'bg-success text-white'
+                                        : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                    }
+                                `}
+                            >
+                                수입 내역
+                            </button>
+                        </div>
+                        {activeTab === 'expense' && filteredExpenses.length > 0 && (
                             <span className="text-caption text-text-secondary">
                                 총 {filteredExpenses.length}건
                             </span>
                         )}
+                        {activeTab === 'income' && incomes.length > 0 && (
+                            <span className="text-caption text-text-secondary">
+                                총 {incomes.length}건 | +{totalIncome.toLocaleString('ko-KR')}원
+                            </span>
+                        )}
                     </div>
 
-                    {loading || settingsLoading ? (
-                        <div className="space-y-3">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="bg-white rounded-2xl p-4 shadow-card">
-                                    <div className="skeleton h-5 w-32 rounded mb-2" />
-                                    <div className="skeleton h-4 w-48 rounded mb-4" />
-                                    <div className="flex justify-between items-center">
-                                        <div className="skeleton h-6 w-16 rounded-full" />
-                                        <div className="skeleton h-6 w-24 rounded" />
+                    {activeTab === 'expense' ? (
+                        // Expense List
+                        loading || settingsLoading ? (
+                            <div className="space-y-3">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="bg-white rounded-2xl p-4 shadow-card">
+                                        <div className="skeleton h-5 w-32 rounded mb-2" />
+                                        <div className="skeleton h-4 w-48 rounded mb-4" />
+                                        <div className="flex justify-between items-center">
+                                            <div className="skeleton h-6 w-16 rounded-full" />
+                                            <div className="skeleton h-6 w-24 rounded" />
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <ExpenseList
+                                expenses={filteredExpenses}
+                                onEdit={setEditingExpense}
+                                onDelete={handleDelete}
+                                onViewReceipt={handleViewReceipt}
+                                newExpenseId={newExpenseId}
+                            />
+                        )
                     ) : (
-                        <ExpenseList
-                            expenses={filteredExpenses}
-                            onEdit={setEditingExpense}
-                            onDelete={handleDelete}
-                            onViewReceipt={handleViewReceipt}
-                            newExpenseId={newExpenseId}
-                        />
+                        // Income List
+                        incomesLoading || settingsLoading ? (
+                            <div className="space-y-3">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="bg-white rounded-2xl p-4 shadow-card">
+                                        <div className="skeleton h-5 w-32 rounded mb-2" />
+                                        <div className="skeleton h-4 w-48 rounded mb-4" />
+                                        <div className="flex justify-between items-center">
+                                            <div className="skeleton h-6 w-16 rounded-full" />
+                                            <div className="skeleton h-6 w-24 rounded" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <IncomeList
+                                incomes={incomes}
+                                onEdit={setEditingIncome}
+                                onDelete={handleIncomeDelete}
+                                newIncomeId={newIncomeId}
+                            />
+                        )
                     )}
                 </div>
             </main>
@@ -578,6 +710,21 @@ function App() {
                 isOpen={showManualExpenseModal}
                 onSave={handleManualExpenseAdd}
                 onClose={() => setShowManualExpenseModal(false)}
+            />
+
+            {/* Income Input Modal */}
+            <IncomeInputModal
+                isOpen={showIncomeInputModal}
+                onSave={handleIncomeAdd}
+                onClose={() => setShowIncomeInputModal(false)}
+            />
+
+            {/* Income Edit Modal */}
+            <IncomeEditModal
+                isOpen={!!editingIncome}
+                income={editingIncome}
+                onSave={handleIncomeEditSave}
+                onClose={() => setEditingIncome(null)}
             />
 
             {/* Advanced Search Modal */}

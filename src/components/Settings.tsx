@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2, Wallet, Lock, KeyRound } from 'lucide-react';
+import { ArrowLeft, Trash2, AlertTriangle, X, Key, Eye, EyeOff, Check, Database, Loader2, Wallet, Lock, KeyRound, TrendingUp } from 'lucide-react';
 import { testConnectionDetailed } from '../services/supabase';
 import { formatCurrencyInput, extractNumber } from '../utils/formatUtils';
 
@@ -12,13 +12,14 @@ interface SettingsProps {
     onApiKeyPinChange: (pin: string) => void;
     geminiApiKey: string;
     onGeminiApiKeyChange: (key: string) => void;
+    onIncomeEntryClick: () => void;
 }
 
 const DEFAULT_PIN = '1111';
 
 type PasswordAction = 'view' | 'edit' | 'change' | 'delete' | 'reset';
 
-export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPin, onApiKeyPinChange, geminiApiKey, onGeminiApiKeyChange }: SettingsProps) {
+export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPin, onApiKeyPinChange, geminiApiKey, onGeminiApiKeyChange, onIncomeEntryClick }: SettingsProps) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
@@ -453,6 +454,42 @@ export function Settings({ onBack, onResetData, budget, onBudgetChange, apiKeyPi
                                     ) : (
                                         '예산 저장'
                                     )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Income Entry Section */}
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
+                        <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                            수입 내역 입력
+                        </h2>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                <TrendingUp className="w-5 h-5 text-success" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-body font-semibold text-text-primary mb-1">수입 내역 관리</p>
+                                <p className="text-caption text-text-secondary mb-3">
+                                    수입 내역을 입력하여 관리합니다.
+                                </p>
+
+                                <button
+                                    onClick={onIncomeEntryClick}
+                                    className="
+                                        w-full h-10 rounded-xl font-semibold text-sm
+                                        flex items-center justify-center gap-2
+                                        transition-all active:scale-95
+                                        bg-success text-white hover:bg-green-600
+                                    "
+                                >
+                                    <TrendingUp className="w-4 h-4" />
+                                    입력
                                 </button>
                             </div>
                         </div>

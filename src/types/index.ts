@@ -13,6 +13,19 @@ export interface Expense {
     updated_at?: string;
 }
 
+export interface Income {
+    id: string;
+    date: string; // YYYY-MM-DD
+    category: string; // 조합비, 기타
+    amount: number;
+    source: string | null; // 수입처 (전년도 잔액 이월, 대전지방국토관리청, 기타)
+    method: string | null; // 형식 (계좌이체, 현금)
+    note: string | null; // 비고
+    user_id: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface UserSettings {
     id?: string;
     user_id: string;

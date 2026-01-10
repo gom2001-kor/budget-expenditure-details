@@ -1,6 +1,14 @@
 import { Receipt, ArrowUp } from 'lucide-react';
 
-export function EmptyState() {
+interface EmptyStateProps {
+    message?: string;
+    subMessage?: string;
+}
+
+export function EmptyState({
+    message = '아직 등록된 지출이 없습니다',
+    subMessage = '영수증을 촬영하거나 갤러리에서 선택하여 지출 내역을 추가해보세요!'
+}: EmptyStateProps) {
     return (
         <div className="flex flex-col items-center justify-center py-16 px-4">
             {/* Illustration */}
@@ -15,15 +23,14 @@ export function EmptyState() {
 
             {/* Title */}
             <h3 className="text-subtitle text-text-primary mb-2">
-                아직 등록된 지출이 없습니다
+                {message}
             </h3>
 
             {/* Description */}
             <p className="text-body text-text-secondary text-center max-w-xs">
-                영수증을 촬영하거나 갤러리에서 선택하여
-                <br />
-                지출 내역을 추가해보세요!
+                {subMessage}
             </p>
         </div>
     );
 }
+
