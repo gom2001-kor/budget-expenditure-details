@@ -100,6 +100,14 @@ export async function exportToPdf(
     ? format(dateRange.endDate, 'yyyy.MM.dd', { locale: ko })
     : '';
 
+  // 가로모드일 때 텍스트 잘림 없음
+  const cellTruncateStyle = orientation === 'l'
+    ? ''
+    : 'max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+  const cellTruncateStyleWide = orientation === 'l'
+    ? ''
+    : 'max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+
   // 메인 보고서 HTML
   const mainReportHtml = `
     <div style="margin-bottom: 30px;">
@@ -149,14 +157,14 @@ export async function exportToPdf(
           <tr style="background: ${index % 2 === 0 ? 'white' : '#fafafa'};">
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatDate(expense.date)}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatTime(expense.time) || '-'}</td>
-            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${expense.store_name}</td>
-            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${expense.address || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; ${cellTruncateStyle}">${expense.store_name}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; ${cellTruncateStyleWide} color: #64748b;">${expense.address || '-'}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">
               <span style="display: inline; padding: 2px 6px; background: ${getCategoryColor(expense.category)}20; color: ${getCategoryColor(expense.category)}; border-radius: 4px; font-size: 10px;">
                 ${expense.category}
               </span>
             </td>
-            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${expense.reason || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; ${cellTruncateStyle} color: #64748b;">${expense.reason || '-'}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; white-space: nowrap;">
               ${formatCurrency(expense.amount)}
             </td>
@@ -357,6 +365,14 @@ export async function exportIncomeToPdf(
     }
   };
 
+  // 가로모드일 때 텍스트 잘림 없음
+  const cellTruncateStyle = orientation === 'l'
+    ? ''
+    : 'max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+  const cellTruncateStyleWide = orientation === 'l'
+    ? ''
+    : 'max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+
   // 메인 보고서 HTML
   const mainReportHtml = `
     <div style="margin-bottom: 30px;">
@@ -409,9 +425,9 @@ export async function exportIncomeToPdf(
                 ${income.category}
               </span>
             </td>
-            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${income.source || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; ${cellTruncateStyleWide}">${income.source || '-'}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${income.method || '-'}</td>
-            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b;">${income.note || '-'}</td>
+            <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; ${cellTruncateStyle} color: #64748b;">${income.note || '-'}</td>
             <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600; white-space: nowrap; color: #10b981;">
               +${formatCurrency(income.amount)}
             </td>
